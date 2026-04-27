@@ -12,6 +12,7 @@ RUN apt-get update \
 COPY entrypoint.sh /entrypoint.sh
 
 RUN chmod +x /entrypoint.sh \
+  && sed -i 's/\r$//' /entrypoint.sh \
   && mkdir -p /var/log/suricata /var/lib/suricata/rules
 
 ENTRYPOINT ["/entrypoint.sh"]
