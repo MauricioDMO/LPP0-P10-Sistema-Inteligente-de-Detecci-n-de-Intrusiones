@@ -19,9 +19,11 @@ Archivo: `filebeat/filebeat.yml`
 Configuracion activa:
 
 - Carga de modulos desde `modules.d/*.yml`
-- Output a `http://elasticsearch:9200`
+- Output a `logstash:5044` (Logstash, puerto 5044)
 - Integracion con Kibana en `http://kibana:5601`
 - Logging por stderr (ideal para `docker logs`)
+
+**Cambio importante**: Output fue migrado de Elasticsearch directo a Logstash. Razón: Filebeat solo permite UN output, pero necesitamos dos destinos (Elasticsearch + Redis). Logstash actúa como multiplexer distribuidor.
 
 ### Modulo Suricata
 
@@ -40,8 +42,9 @@ Archivo: `filebeat/modules.d/suricata.yml`
 
 1. Lee `eve.json` del volumen `suricata-logs`.
 2. Aplica parsing del modulo Suricata.
-3. Publica eventos indexables a Elasticsearch.
-4. Permite exploracion inmediata en Kibana.
+3. Envia eventos al puerto 5044 (Logstash beats input).
+4. Logstash distribuye a Elasticsearch (histórico) y Redis (realtime).
+5. Permite exploracion inmediata en Kibana y consumo realtime en aplicaciones.
 
 ## Buenas practicas
 

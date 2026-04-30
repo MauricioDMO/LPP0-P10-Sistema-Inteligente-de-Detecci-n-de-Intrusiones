@@ -66,6 +66,7 @@ Nota: si Kibana todavia esta iniciando, espera a que `api/status` responda `avai
 ```bash
 docker compose ps
 docker compose logs -f elasticsearch
+docker compose logs -f logstash
 docker compose logs -f kibana
 docker compose logs -f suricata
 docker compose logs -f filebeat
@@ -77,6 +78,20 @@ Validacion rapida de Elasticsearch:
 curl http://localhost:9200
 curl http://localhost:9200/_cat/indices?v
 ```
+
+Validacion de Logstash (pipeline activo):
+
+```bash
+docker logs logstash | grep "Pipelines running"
+```
+
+Validacion de Redis (connectivity):
+
+```bash
+docker exec redis redis-cli PING
+```
+
+Debería responder `PONG`.
 
 ## 5) Generar trafico de prueba
 
@@ -103,12 +118,23 @@ dig google.com
 ### En Filebeat
 
 - Logs sin errores de lectura/parsing.
-- Eventos enviados hacia Elasticsearch.
+- Eventos enviados hacia Logstash.
+
+### En Logstash
+
+- Pipeline iniciada: `docker logs logstash | grep "Pipelines running"`
+- Debe mostrar: `{:count=>2, :running_pipelines=>[:".monitoring-logstash", :main], :non_running_pipelines=>[]}`
+
+### En Redis
+
+- Canal con suscriptores: `docker exec redis redis-cli PUBSUB NUMSUB suricata`
+- Debe responder con número >0 si hay suscriptores activos.
 
 ### En Elasticsearch
 
 - Indices/data streams de Filebeat visibles en `_cat/indices`.
 - Conteo de documentos incrementando con trafico nuevo.
+- Indices named `suricata-YYYY.MM.dd`.
 
 ### En Kibana
 
@@ -119,12 +145,15 @@ dig google.com
 ## 7) Apagado limpio
 
 ```bash
-docker compose down
-```
-
-Si necesitas limpiar volumenes (perderas datos):
-
-```bash
+docker compose down: `docker compose ps`.
+- [ ] Elasticsearch responde HTTP 200: `curl localhost:9200`.
+- [ ] Logstash pipeline activa: `docker logs logstash | grep "Pipelines running"`.
+- [ ] Redis responde: `docker exec redis redis-cli PING` → PONG.
+- [ ] Kibana abre en navegador: `http://localhost:5601`.
+- [ ] Suricata genera eventos en `eve.json`.
+- [ ] Filebeat envia eventos sin errores.
+- [ ] Se observan documentos de Suricata en Kibana.
+- [ ] (Opcional) Eventos realtime en Redis: `docker exec redis redis-cli SUBSCRIBE suricata` (esperando mensajes)
 docker compose down -v
 ```
 

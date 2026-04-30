@@ -41,7 +41,7 @@ SURICATA_INTERFACE=ens33,virbr0
 
 ## 3) Arranque con compose de produccion
 
-El archivo `docker-compose.prod.yml` es una definicion completa para produccion basica y publica Elasticsearch/Kibana solo en localhost del servidor (`127.0.0.1`).
+El archivo `docker-compose.prod.yml` es una definicion completa para produccion basica. Publica Elasticsearch/Kibana solo en localhost del servidor (`127.0.0.1`). Logstash y Redis corren en la red interna (no se exponen).
 
 Validar compose de produccion:
 
@@ -56,7 +56,13 @@ docker compose -f docker-compose.prod.yml build
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-Setup inicial de Filebeat (una vez):
+Validar que todos los servicios estan corriendo:
+
+```bash
+docker compose -f docker-compose.prod.yml ps
+```
+
+Setup inicial de Filebeat (una sola vez):
 
 ```bash
 docker compose -f docker-compose.prod.yml run --rm filebeat filebeat setup -e --strict.perms=false
@@ -67,6 +73,7 @@ docker compose -f docker-compose.prod.yml run --rm filebeat filebeat setup -e --
 ```bash
 docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs -f elasticsearch
+docker compose -f docker-compose.prod.yml logs -f logstash
 docker compose -f docker-compose.prod.yml logs -f suricata
 docker compose -f docker-compose.prod.yml logs -f filebeat
 ```
@@ -75,6 +82,18 @@ Health de Elasticsearch en host local:
 
 ```bash
 curl http://127.0.0.1:9200
+```
+
+Verificar Logstash está corriendo:
+
+```bash
+docker compose -f docker-compose.prod.yml logs logstash | grep "Pipelines running"
+```
+
+Verificar Redis está disponible (desde host, si se necesita):
+
+```bash
+docker exec $(docker compose -f docker-compose.prod.yml ps -q redis) redis-cli PING
 ```
 
 Kibana en host local:

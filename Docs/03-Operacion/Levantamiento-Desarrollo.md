@@ -38,10 +38,10 @@ Si la interfaz cambia en tu equipo, ajusta `SURICATA_INTERFACE` con una o varias
 Desde la raiz del proyecto:
 
 ```bash
-docker compose config
-docker compose build
-docker compose up -d
+docker compose up -d --build
 ```
+
+Esto levanta todos los servicios: elasticsearch, redis, logstash, kibana, suricata y filebeat.
 
 Inicializar assets de Filebeat/Kibana una sola vez:
 
@@ -55,12 +55,16 @@ Si Kibana acaba de iniciar, espera a que su estado sea `available` y luego ejecu
 curl -s http://localhost:5601/api/status
 ```
 
+**Nota**: Logstash y Redis se inician automáticamente. No requieren setup inicial.
+
 ## 4) Verificacion rapida
 
 ```bash
 docker compose ps
 docker compose logs -f suricata
 docker compose logs -f filebeat
+docker compose logs -f logstash
+docker exec redis redis-cli PING
 curl http://localhost:9200/_cat/indices?v
 ```
 
@@ -70,8 +74,22 @@ Kibana:
 - Ir a Discover.
 - Filtrar por `event.module: suricata`.
 
-## 5) Prueba funcional minima
+Redis realtime (opcional):
 
+- En terminal 1: `docker exec redis redis-cli SUBSCRIBE suricata`
+- En terminal 2: ejecutar paso 5 (Prueba funcional)
+- Resultado: eventos JSON aparecen en terminal 1 en tiempo real (<1s)
+
+## 5) Prueba funcional minima
+ (después de ~5s).
+
+Validar realtime en Redis:
+
+```bash
+docker exec redis redis-cli SUBSCRIBE suricata
+```
+
+Debería mostrar eventos JSON <1s después de generar tráfico
 Generar trafico:
 
 ```bash

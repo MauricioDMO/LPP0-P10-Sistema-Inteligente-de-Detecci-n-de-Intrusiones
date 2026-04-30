@@ -2,8 +2,8 @@ filebeat.config.modules:
   path: ${path.config}/modules.d/*.yml
   reload.enabled: false
 
-output.elasticsearch:
-  hosts: ["http://elasticsearch:9200"]
+output.logstash:
+  hosts: ["logstash:5044"]
 
 setup.kibana:
   host: "http://kibana:5601"

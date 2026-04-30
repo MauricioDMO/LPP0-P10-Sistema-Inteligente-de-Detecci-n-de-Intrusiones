@@ -61,6 +61,28 @@ services:
       - suricata-logs:/var/log/suricata
     restart: always
 
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "127.0.0.1:6379:6379"
+    restart: always
+
+  logstash:
+    build:
+      context: ./logstash
+      args:
+        STACK_VERSION: ${STACK_VERSION}
+    container_name: logstash
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    volumes:
+      - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
+    restart: always
+
   filebeat:
     build:
       context: ./filebeat
@@ -69,9 +91,7 @@ services:
     container_name: filebeat
     user: root
     depends_on:
-      elasticsearch:
-        condition: service_healthy
-      kibana:
+      logstash:
         condition: service_started
       suricata:
         condition: service_started
