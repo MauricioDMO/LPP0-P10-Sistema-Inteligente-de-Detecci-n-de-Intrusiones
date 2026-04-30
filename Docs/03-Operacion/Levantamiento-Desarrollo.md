@@ -43,11 +43,27 @@ docker compose up -d --build
 
 Esto levanta todos los servicios: elasticsearch, redis, logstash, kibana, suricata y filebeat.
 
-Inicializar assets de Filebeat/Kibana una sola vez:
+En el primer levantamiento del proyecto en Kibana:
 
-```bash
-docker compose run --rm filebeat filebeat setup -e --strict.perms=false
-```
+1. Ve a:
+Stack Management → Data Views
+2. Crea uno nuevo:
+Name: suricata
+Index pattern:
+suricata-*
+3. Campo de tiempo:
+Selecciona @timestamp
+
+Verificación rápida
+
+Después de crear el Data View:
+
+Ve a:
+Discover
+Selecciona:
+suricata
+
+Deberías ver los logs inmediatamente
 
 Si Kibana acaba de iniciar, espera a que su estado sea `available` y luego ejecuta el setup:
 
