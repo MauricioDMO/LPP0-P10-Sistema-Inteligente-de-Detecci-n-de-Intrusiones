@@ -1,64 +1,63 @@
 # Filebeat
 
-## Que es
+Filebeat es el agente que lee los eventos EVE JSON generados por Suricata y los envia a Logstash.
 
-Filebeat es un lightweight shipper de logs de Elastic. Lee archivos de log, parsea eventos y los envia a un destino como Elasticsearch.
+## Rol en el proyecto
 
-## Por que se usa en este proyecto
+- Lee `/var/log/suricata/eve.json` desde el volumen compartido `suricata-logs`.
+- Usa el modulo oficial de Suricata para interpretar eventos.
+- Envia eventos a Logstash por Beats en `logstash:5044`.
+- Guarda offsets en `filebeat-data` para no reingerir todo tras reinicios.
 
-- Conecta Suricata con Elasticsearch sin desarrollar un parser propio.
-- Soporta modulo oficial de Suricata para EVE JSON.
-- Permite centralizar y normalizar eventos para consulta en Kibana.
-
-## Como esta configurado aqui
-
-### Config principal
+## Configuracion real
 
 Archivo: `filebeat/filebeat.yml`
 
-Configuracion activa:
+```yaml
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: false
 
-- Carga de modulos desde `modules.d/*.yml`
-- Output a `logstash:5044` (Logstash, puerto 5044)
-- Integracion con Kibana en `http://kibana:5601`
-- Logging por stderr (ideal para `docker logs`)
+output.logstash:
+  hosts: ["logstash:5044"]
 
-**Cambio importante**: Output fue migrado de Elasticsearch directo a Logstash. Razón: Filebeat solo permite UN output, pero necesitamos dos destinos (Elasticsearch + Redis). Logstash actúa como multiplexer distribuidor.
+setup.kibana:
+  host: "http://kibana:5601"
+```
 
-### Modulo Suricata
+Modulo Suricata: `filebeat/modules.d/suricata.yml`
 
-Archivo: `filebeat/modules.d/suricata.yml`
+```yaml
+- module: suricata
+  eve:
+    enabled: true
+    var.paths: ["/var/log/suricata/eve.json"]
+```
 
-- Modulo `suricata` habilitado.
-- Input apuntando a `/var/log/suricata/eve.json`.
+Compose ejecuta Filebeat como `root` y con `--strict.perms=false` para evitar problemas de permisos dentro del contenedor.
 
-### Ejecucion en Compose
+## Validacion rapida
 
-- Corre como `user: root` para evitar fricciones de permisos.
-- Usa `--strict.perms=false`.
-- Depende de Elasticsearch healthy y de inicio de Suricata/Kibana.
+Ver logs:
 
-## Flujo de datos
+```bash
+docker compose logs --tail=100 filebeat
+```
 
-1. Lee `eve.json` del volumen `suricata-logs`.
-2. Aplica parsing del modulo Suricata.
-3. Envia eventos al puerto 5044 (Logstash beats input).
-4. Logstash distribuye a Elasticsearch (histórico) y Redis (realtime).
-5. Permite exploracion inmediata en Kibana y consumo realtime en aplicaciones.
+Buscar conexion con Logstash:
 
-## Buenas practicas
+```bash
+docker logs filebeat | grep -i logstash
+```
 
-- Ejecutar setup inicial una vez para assets en Kibana:
+Setup de assets en Kibana, si se requiere:
 
 ```bash
 docker compose run --rm filebeat filebeat setup -e --strict.perms=false
 ```
 
-- Mantener `filebeat-data` persistente para no reingerir todo el archivo tras reinicios.
-- Revisar logs de Filebeat cuando no aparezcan eventos en indices.
+## Riesgos
 
-## Riesgos y limitaciones
-
-- Si `eve.json` no existe o no crece, no habra eventos.
-- `strict.perms=false` simplifica pero oculta fallas de permisos.
-- Sin pipeline custom avanzado para enriquecimiento adicional.
+- Si `eve.json` no existe o no crece, Filebeat no enviara eventos.
+- Si Logstash falla, Filebeat no puede entregar datos.
+- `strict.perms=false` simplifica laboratorio, pero no es ideal para hardening.

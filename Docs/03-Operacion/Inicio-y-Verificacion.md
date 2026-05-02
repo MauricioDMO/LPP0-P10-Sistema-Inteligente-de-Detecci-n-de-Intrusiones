@@ -1,167 +1,143 @@
-# Inicio y Verificacion del Proyecto
+# Inicio y Verificacion
 
-Este documento explica como iniciar el stack y que puedes ir a revisar cuando todo este levantado.
+Checklist para confirmar que el stack funciona de extremo a extremo. Usa esta guia despues de levantar desarrollo o produccion.
 
-## Ruta rapida segun entorno
+## Rutas de arranque
 
-- Desarrollo: revisa [Levantamiento-Desarrollo.md](Levantamiento-Desarrollo.md).
-- Produccion: revisa [Levantamiento-Produccion.md](Levantamiento-Produccion.md).
+- Desarrollo: [Levantamiento-Desarrollo.md](Levantamiento-Desarrollo.md)
+- Produccion basica: [Levantamiento-Produccion.md](Levantamiento-Produccion.md)
 
-Este documento se mantiene como guia general de validacion end-to-end.
+## 1. Servicios Docker
 
-## 1) Prerequisitos
-
-- Docker Engine y Docker Compose instalados.
-- Daemon de Docker activo.
-- Permisos para ejecutar Docker.
-- Interfaz de red valida en `.env` para Suricata.
-
-Comando para listar interfaces:
-
-```bash
-ip -o link show | awk -F': ' '{print $2}'
-```
-
-## 2) Revisar variables de entorno
-
-Archivo: `.env`
-
-Valores esperados:
-
-```env
-STACK_VERSION=8.19.14
-SURICATA_INTERFACE=wlp0s20f3
-```
-
-Tambien puedes usar multiples interfaces separadas por coma:
-
-```env
-SURICATA_INTERFACE=wlp0s20f3,zttqhrw6r3
-```
-
-Si ves `eth0` en ejemplos anteriores, no lo tomes como valor por defecto para este host: aqui las interfaces detectadas son `wlp0s20f3`, `zttqhrw6r3`, `zttqh2xyhk` y `virbr0`.
-
-Si tu interfaz cambia, ajusta `SURICATA_INTERFACE` con una o varias interfaces validas del host.
-
-## 3) Levantar el stack
-
-Desde la raiz del proyecto:
-
-```bash
-docker compose config
-docker compose build
-docker compose up -d
-```
-
-Ejecutar setup inicial de Filebeat (una vez):
-
-```bash
-docker compose run --rm filebeat filebeat setup -e --strict.perms=false
-```
-
-Nota: si Kibana todavia esta iniciando, espera a que `api/status` responda `available` y vuelve a ejecutar setup.
-
-## 4) Verificar estado de servicios
+Desarrollo:
 
 ```bash
 docker compose ps
-docker compose logs -f elasticsearch
-docker compose logs -f logstash
-docker compose logs -f kibana
-docker compose logs -f suricata
-docker compose logs -f filebeat
 ```
 
-Validacion rapida de Elasticsearch:
+Produccion:
+
+```bash
+docker compose -f docker-compose.prod.yml ps
+```
+
+Todos los servicios deben estar en estado `Up` o `running`.
+
+## 2. Elasticsearch
 
 ```bash
 curl http://localhost:9200
+curl http://localhost:9200/_cluster/health
 curl http://localhost:9200/_cat/indices?v
 ```
 
-Validacion de Logstash (pipeline activo):
+En produccion basica usa `http://127.0.0.1:9200`.
 
-```bash
-docker logs logstash | grep "Pipelines running"
-```
+Resultado esperado:
 
-Validacion de Redis (connectivity):
+- Elasticsearch responde HTTP.
+- El cluster esta `green` o `yellow`.
+- Aparecen indices `suricata-*` despues de generar trafico.
+
+## 3. Redis
 
 ```bash
 docker exec redis redis-cli PING
+docker exec redis redis-cli PUBSUB NUMSUB suricata
 ```
 
-Debería responder `PONG`.
+Resultado esperado:
 
-## 5) Generar trafico de prueba
+- `PING` responde `PONG`.
+- `NUMSUB` muestra suscriptores cuando hay clientes conectados.
 
-En el host:
+Prueba realtime:
 
 ```bash
-curl http://neverssl.com
+docker exec redis redis-cli SUBSCRIBE suricata
+```
+
+Deja ese comando abierto y genera trafico desde otra terminal.
+
+## 4. Logstash
+
+```bash
+docker logs logstash | grep "Pipelines running"
+docker logs logstash | grep -i "error\|exception"
+```
+
+Resultado esperado:
+
+- La pipeline `main` aparece corriendo.
+- No hay errores persistentes de conexion a Elasticsearch o Redis.
+
+## 5. Suricata
+
+```bash
+docker compose logs --tail=100 suricata
+```
+
+Generar trafico:
+
+```bash
 ping -c 4 8.8.8.8
+curl http://neverssl.com
+curl http://example.com
 ```
 
-Opcional (si tienes `dig`):
+Resultado esperado:
+
+- Suricata se mantiene corriendo.
+- Se generan eventos en `eve.json`.
+- En modo IPS, reglas `reject` pueden bloquear trafico segun `suricata.rules`.
+
+## 6. Filebeat
 
 ```bash
-dig google.com
+docker compose logs --tail=100 filebeat
+docker logs filebeat | grep -i logstash
 ```
 
-## 6) Que ver una vez levantado todo
+Resultado esperado:
 
-### En Suricata
+- Filebeat lee `/var/log/suricata/eve.json`.
+- Filebeat logra publicar eventos en Logstash.
 
-- Debe existir actividad en `eve.json` dentro de `/var/log/suricata` (volumen compartido).
-- La regla ICMP local debe generar alertas ante `ping`.
+## 7. Kibana
 
-### En Filebeat
+Abrir:
 
-- Logs sin errores de lectura/parsing.
-- Eventos enviados hacia Logstash.
-
-### En Logstash
-
-- Pipeline iniciada: `docker logs logstash | grep "Pipelines running"`
-- Debe mostrar: `{:count=>2, :running_pipelines=>[:".monitoring-logstash", :main], :non_running_pipelines=>[]}`
-
-### En Redis
-
-- Canal con suscriptores: `docker exec redis redis-cli PUBSUB NUMSUB suricata`
-- Debe responder con número >0 si hay suscriptores activos.
-
-### En Elasticsearch
-
-- Indices/data streams de Filebeat visibles en `_cat/indices`.
-- Conteo de documentos incrementando con trafico nuevo.
-- Indices named `suricata-YYYY.MM.dd`.
-
-### En Kibana
-
-- UI accesible en `http://localhost:5601`.
-- En Discover, eventos con `event.module: suricata`.
-- Visualizacion de tipos de evento (dns, http, tls, alert, flow, etc.).
-
-## 7) Apagado limpio
-
-```bash
-docker compose down: `docker compose ps`.
-- [ ] Elasticsearch responde HTTP 200: `curl localhost:9200`.
-- [ ] Logstash pipeline activa: `docker logs logstash | grep "Pipelines running"`.
-- [ ] Redis responde: `docker exec redis redis-cli PING` → PONG.
-- [ ] Kibana abre en navegador: `http://localhost:5601`.
-- [ ] Suricata genera eventos en `eve.json`.
-- [ ] Filebeat envia eventos sin errores.
-- [ ] Se observan documentos de Suricata en Kibana.
-- [ ] (Opcional) Eventos realtime en Redis: `docker exec redis redis-cli SUBSCRIBE suricata` (esperando mensajes)
-docker compose down -v
+```text
+http://localhost:5601
 ```
 
-## 8) Checklist de exito
+En produccion basica:
 
-- [ ] Servicios arriba (`docker compose ps`).
-- [ ] Elasticsearch responde HTTP 200.
-- [ ] Kibana abre en navegador.
-- [ ] Suricata genera eventos en `eve.json`.
-- [ ] Filebeat envia eventos sin errores.
-- [ ] Se observan documentos de Suricata en Kibana.
+```text
+http://127.0.0.1:5601
+```
+
+Validar:
+
+- Existe Data View `suricata-*`.
+- `Discover` muestra eventos recientes.
+- La ventana temporal incluye el momento de las pruebas.
+
+Filtros utiles:
+
+```text
+event.module: suricata
+suricata.eve.event_type: alert
+```
+
+## Checklist final
+
+- [ ] Docker muestra servicios arriba.
+- [ ] Elasticsearch responde en `9200`.
+- [ ] Redis responde `PONG`.
+- [ ] Logstash tiene pipeline activa.
+- [ ] Suricata sigue corriendo despues de generar trafico.
+- [ ] Filebeat envia eventos a Logstash.
+- [ ] Existen indices `suricata-*`.
+- [ ] Kibana muestra eventos en Discover.
+- [ ] Redis publica eventos en el canal `suricata` si hay suscriptor.

@@ -1,59 +1,71 @@
-# Documentacion del Proyecto Suricata + Elastic Stack
+# Documentacion del Proyecto Suricata
 
-Este directorio centraliza la documentacion tecnica del stack IDS que usa Suricata, Filebeat, Elasticsearch y Kibana sobre Docker Compose.
+Este directorio contiene la documentacion tecnica y operativa del stack de monitoreo de red basado en Suricata, Filebeat, Logstash, Redis, Elasticsearch y Kibana.
 
-## Objetivo de esta documentacion
+El objetivo es que cualquier integrante pueda entender la arquitectura, levantar el sistema y validar el flujo completo sin revisar todos los archivos del repositorio.
 
-- Explicar que hace cada tecnologia.
-- Justificar por que se usa en este proyecto.
-- Describir la configuracion real del repositorio.
-- Guiar el arranque, validacion y diagnostico.
-
-## Ruta de lectura recomendada
+## Lectura recomendada
 
 1. [Arquitectura](01-Arquitectura/Arquitectura.md)
-2. [Suricata](02-Componentes/Suricata.md)
-3. [Filebeat](02-Componentes/Filebeat.md)
-4. [Logstash](02-Componentes/Logstash.md)
-5. [Redis](02-Componentes/Redis.md)
-6. [Elasticsearch](02-Componentes/Elasticsearch.md)
-7. [Kibana](02-Componentes/Kibana.md)
-8. [Levantamiento en Desarrollo](03-Operacion/Levantamiento-Desarrollo.md)
-9. [Levantamiento en Produccion](03-Operacion/Levantamiento-Produccion.md)
-10. [Inicio y Verificacion](03-Operacion/Inicio-y-Verificacion.md)
-11. [Troubleshooting](03-Operacion/Troubleshooting.md)
+2. [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md)
+3. [Levantamiento en produccion basica](03-Operacion/Levantamiento-Produccion.md)
+4. [Inicio y verificacion](03-Operacion/Inicio-y-Verificacion.md)
+5. [Troubleshooting](03-Operacion/Troubleshooting.md)
 
-## Si quieres levantar rapido
+## Levantar rapido
 
-- Desarrollo: ver [Levantamiento en Desarrollo](03-Operacion/Levantamiento-Desarrollo.md).
-- Produccion: ver [Levantamiento en Produccion](03-Operacion/Levantamiento-Produccion.md).
+Desarrollo o laboratorio:
 
-Ambos documentos incluyen comandos completos y checklist.
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
 
-## Alcance actual
+Produccion basica:
 
-- Stack dockerizado para laboratorio funcional.
-- Configuracion sin autenticacion en Elasticsearch/Kibana para simplicidad.
-- Pipeline historico: Suricata → Filebeat → Logstash → Elasticsearch (indices diarios).
-- Pipeline realtime: Logstash → Redis Pub/Sub (eventos <1s para backends/dashboards).
-- Enfoque principal en observabilidad del trafico y validacion end-to-end.
+```bash
+cp .env.example .env
+sudo sysctl -w vm.max_map_count=262144
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Antes de ejecutar, revisa `.env`. Si cambias a `SURICATA_MODE=ids`, ajusta `SURICATA_INTERFACE` a una interfaz real del host.
+
+## Flujo del sistema
+
+```text
+Trafico de red
+  -> Suricata
+  -> /var/log/suricata/eve.json
+  -> Filebeat
+  -> Logstash
+  -> Elasticsearch -> Kibana
+  -> Redis Pub/Sub -> consumidores realtime
+```
+
+## Documentos
+
+- [Arquitectura](01-Arquitectura/Arquitectura.md): flujo completo, decisiones tecnicas, persistencia y riesgos.
+- [Suricata](02-Componentes/Suricata.md): captura, modo IPS/IDS, reglas y salida EVE JSON.
+- [Filebeat](02-Componentes/Filebeat.md): lectura de `eve.json` y envio a Logstash.
+- [Logstash](02-Componentes/Logstash.md): distribucion a Elasticsearch y Redis.
+- [Redis](02-Componentes/Redis.md): canal Pub/Sub para eventos en tiempo real.
+- [Elasticsearch](02-Componentes/Elasticsearch.md): indexacion y consulta historica.
+- [Kibana](02-Componentes/Kibana.md): exploracion visual de eventos.
+- [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md): arranque local/laboratorio.
+- [Levantamiento en produccion](03-Operacion/Levantamiento-Produccion.md): arranque con puertos restringidos a localhost.
+- [Inicio y verificacion](03-Operacion/Inicio-y-Verificacion.md): checklist end-to-end.
+- [Troubleshooting](03-Operacion/Troubleshooting.md): diagnostico de fallas comunes.
+- [Primer documento](04-Entregables/Primer-Doc.md): evidencia historica de la primera entrega.
+
+## Alcance
+
+- Stack dockerizado para laboratorio y produccion basica.
+- Suricata en modo IPS por defecto mediante `SURICATA_MODE=ips`.
+- Pipeline historico con indices diarios `suricata-YYYY.MM.dd` en Elasticsearch.
+- Pipeline realtime con Redis Pub/Sub en el canal `suricata`.
+- Seguridad de Elastic y Redis deshabilitada por simplicidad operativa.
 
 ## Nota de seguridad
 
-Este stack esta optimizado para laboratorio. Antes de exponer en red real, revisar endurecimiento en [Troubleshooting](03-Operacion/Troubleshooting.md) y recomendaciones de seguridad en cada documento tecnico.
-
-## Mapa rapido de documentos
-
-- [01-Arquitectura/Arquitectura.md](01-Arquitectura/Arquitectura.md): flujo completo, decisiones tecnicas, pipeline historico + realtime.
-- [02-Componentes/Suricata.md](02-Componentes/Suricata.md): captura de red, reglas y salida EVE JSON.
-- [02-Componentes/Filebeat.md](02-Componentes/Filebeat.md): ingestion de logs y envio a Logstash.
-- [02-Componentes/Logstash.md](02-Componentes/Logstash.md): multiplexing de eventos a Elasticsearch y Redis.
-- [02-Componentes/Redis.md](02-Componentes/Redis.md): Pub/Sub para pipeline realtime.
-- [02-Componentes/Elasticsearch.md](02-Componentes/Elasticsearch.md): indexacion, persistencia y salud del nodo.
-- [02-Componentes/Kibana.md](02-Componentes/Kibana.md): visualizacion y exploracion de eventos.
-- [03-Operacion/Levantamiento-Desarrollo.md](03-Operacion/Levantamiento-Desarrollo.md): arranque rapido para entorno de trabajo.
-- [03-Operacion/Levantamiento-Produccion.md](03-Operacion/Levantamiento-Produccion.md): arranque con override de produccion.
-- [03-Operacion/Inicio-y-Verificacion.md](03-Operacion/Inicio-y-Verificacion.md): validaciones de Logstash, Redis y end-to-end.
-- [03-Operacion/Troubleshooting.md](03-Operacion/Troubleshooting.md): errores comunes, Logstash y Redis.
-- [04-Entregables/Primer-Doc.md](04-Entregables/Primer-Doc.md): documento consolidado de la primera entrega.
-
+La configuracion actual no debe exponerse directamente a internet. Para un entorno real, habilita autenticacion, TLS, firewall, control de accesos, backups y monitoreo.

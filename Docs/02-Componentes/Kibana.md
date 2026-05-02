@@ -1,47 +1,50 @@
 # Kibana
 
-## Que es
+Kibana permite explorar y visualizar los eventos almacenados en Elasticsearch.
 
-Kibana es la capa de visualizacion y exploracion para datos almacenados en Elasticsearch.
+## Rol en el proyecto
 
-## Por que se usa en este proyecto
+- Verificar que los eventos llegan a Elasticsearch.
+- Buscar por tiempo, IP, dominio, protocolo o tipo de evento.
+- Crear visualizaciones para analisis historico.
 
-- Permite validar rapidamente que los eventos llegan.
-- Facilita filtros por tiempo, IP, dominio, protocolo y tipo de evento.
-- Acelera analisis sin escribir consultas complejas desde cero.
-
-## Como esta configurado aqui
+## Configuracion real
 
 Archivo: `kibana/kibana.yml`
 
-Configuracion activa:
+```yaml
+server.host: 0.0.0.0
+server.name: kibana
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+```
 
-- `server.host: 0.0.0.0`
-- `server.name: kibana`
-- `elasticsearch.hosts: ["http://elasticsearch:9200"]`
+Puertos:
 
-Compose:
+- Desarrollo: `http://localhost:5601`
+- Produccion basica: `http://127.0.0.1:5601`
 
-- Puerto publicado `5601:5601`.
-- Dependencia de Elasticsearch healthy.
+Kibana depende de que Elasticsearch este sano.
 
-## Que revisar una vez levantado
+## Primer uso
 
-1. Ingresar a `http://localhost:5601`.
-2. Confirmar disponibilidad de Data Views de Filebeat.
-3. En Discover, validar eventos con campos Suricata:
-   - `event.module: suricata`
-   - `suricata.eve.event_type`
-   - `source.ip` / `destination.ip`
+1. Abrir `http://localhost:5601`.
+2. Ir a `Stack Management`.
+3. Entrar en `Data Views`.
+4. Crear un Data View con patron `suricata-*`.
+5. Usar `@timestamp` como campo de tiempo.
+6. Ir a `Discover` y seleccionar el Data View.
 
-## Buenas practicas
+## Filtros utiles
 
-- Definir ventanas temporales claras durante pruebas.
-- Guardar busquedas y visualizaciones base para el equipo.
-- Documentar filtros de investigacion recurrentes.
+```text
+event.module: suricata
+suricata.eve.event_type: alert
+source.ip: <ip>
+destination.ip: <ip>
+```
 
-## Riesgos y limitaciones
+## Riesgos
 
-- Sin autenticacion en UI.
-- Exposicion en `0.0.0.0` requiere control por red/firewall.
-- Dashboard depende de que Filebeat setup haya corrido correctamente.
+- UI sin autenticacion.
+- No debe exponerse directamente a internet.
+- Si no hay indices `suricata-*`, primero revisar Suricata, Filebeat y Logstash.

@@ -1,121 +1,119 @@
-# Arquitectura del Stack
+# Arquitectura
 
-## Vista general
+El proyecto implementa un sistema de monitoreo de red con dos salidas complementarias:
 
-El sistema implementa un **pipeline dual** de Network Security Monitoring:
+- Historica: eventos almacenados en Elasticsearch para busqueda y visualizacion en Kibana.
+- Realtime: eventos publicados en Redis Pub/Sub para consumidores en vivo.
 
-1. **Pipeline Histórico**: Persiste eventos en Elasticsearch para análisis retrospectivo, búsqueda y visualización en Kibana.
-2. **Pipeline Realtime**: Distribuye eventos en tiempo real a través de Redis Pub/Sub para consumo inmediato en dashboards y backends.
+## Flujo principal
 
-Flujo end-to-end:
+```text
+Trafico del host
+  -> Suricata
+  -> eve.json
+  -> Filebeat
+  -> Logstash
+  -> Elasticsearch -> Kibana
+  -> Redis canal suricata -> backend/dashboard realtime
+```
 
-1. Suricata captura paquetes de una interfaz del host.
-2. Suricata escribe eventos EVE JSON en `eve.json`.
-3. Filebeat consume `eve.json` y lo parsea con el módulo de Suricata.
-4. Filebeat envía documentos a Logstash (puerto 5044).
-5. Logstash recibe eventos y los distribuye:
-   - A Elasticsearch para almacenamiento histórico
-   - A Redis para consumo realtime
-6. Kibana consulta Elasticsearch para exploración y visualización.
-7. Aplicaciones (backend FastAPI, dashboards) se suscriben a Redis canal `suricata` para eventos en vivo.
+## Componentes
 
-## Diagrama logico
+- Suricata inspecciona trafico y genera eventos EVE JSON en `/var/log/suricata/eve.json`.
+- Filebeat lee `eve.json` con el modulo oficial de Suricata y envia los eventos a Logstash por Beats (`logstash:5044`).
+- Logstash recibe los eventos y los publica en dos destinos: Elasticsearch y Redis.
+- Elasticsearch guarda eventos en indices diarios `suricata-YYYY.MM.dd`.
+- Kibana consulta Elasticsearch para exploracion historica.
+- Redis publica eventos en el canal `suricata` para consumo inmediato.
+
+## Diagrama
 
 ```mermaid
 flowchart TD
-    A["Host Network Interface"] --> B["Suricata - container host network privileged"]
-    B --> C["/var/log/suricata/eve.json - volumen compartido"]
-    C --> D["Filebeat - módulo Suricata"]
-    D --> E["Logstash - input beats, port 5044"]
-    E --> F["Elasticsearch - single node, índices suricata-*"]
-    E --> G["Redis - canal Pub/Sub 'suricata'"]
-    F --> H["Kibana - visualización histórica"]
-    G --> I["Aplicaciones (FastAPI, Dashboards) - suscriptores realtime"]
+    A[Interfaz de red del host] --> B[Suricata]
+    B --> C[eve.json en volumen suricata-logs]
+    C --> D[Filebeat]
+    D --> E[Logstash]
+    E --> F[Elasticsearch]
+    E --> G[Redis Pub/Sub canal suricata]
+    F --> H[Kibana]
+    G --> I[Backends o dashboards realtime]
 ```
 
-## Decisiones tecnicas actuales
+## Decisiones tecnicas
 
-### 1) Docker Compose como orquestador
+### Docker Compose
 
-Se usa Compose para levantar servicios con una sola definicion versionada y reproducible, con volumenes persistentes y dependencias entre servicios.
+El stack se levanta con Compose para mantener una configuracion reproducible de servicios, volumenes, puertos y dependencias.
 
-### 2) Suricata en `network_mode: host`
+Archivos principales:
 
-Se usa host networking para captura real de paquetes del host. En modo bridge, el contenedor no ve el trafico del host de forma equivalente.
+- `docker-compose.yml`: desarrollo/laboratorio.
+- `docker-compose.prod.yml`: produccion basica con puertos publicados en `127.0.0.1`.
 
-### 3) Volumen compartido para logs de Suricata
-Logstash como multiplexer
+### Suricata en modo IPS por defecto
 
-**Problema**: Filebeat solo permite UN output. Se necesitaban dos destinos simultáneamente.
+`.env.example` define `SURICATA_MODE=ips`. En este modo, el contenedor usa `NFQUEUE` para inspeccionar trafico saliente y permitir que reglas `reject` o `drop` bloqueen conexiones.
 
-**Solución**: Logstash recibe eventos de Filebeat y distribuye a múltiples outputs (Elasticsearch + Redis).
+Tambien existe modo IDS:
 
-**Alternativas rechazadas**:
-- Ejecutar dos instancias de Filebeat → duplicación innecesaria
-- Elegir un solo destino → pérdida de capacidad histórica o realtime
-
-Logstash es la solución estándar de Elastic para este tipo de distribución.
-
-### 5) Elasticsearch en single-node
-Elasticsearch debe estar sano (healthcheck OK) antes de que Logstash inicie
-- Logstash debe estar corriendo antes de que Filebeat se conecte
-- Kibana depende de Elasticsearch sano (healthcheck OK)
-- Suricata inicia independiente, capturando desde la interfaz definida en `.env`
-- Redis inicia independiente, esperando suscriptores
-
-Orden de inicio típico (automático en Compose):
-
+```env
+SURICATA_MODE=ids
+SURICATA_INTERFACE=wlp0s20f3
 ```
-1. redis
-2. elasticsearch (espera a healthcheck)
-3. logstash (depende de elasticsearch healthy)
-4. filebeat (depende de logstash started)
-5. suricata (independiente)
-6. kibana (depende de elasticsearch healthy)
-```
-### 6) Redis Pub/Sub para realtime
 
-**Canal vs. List**:
-- **Channel** (Pub/Sub): sin persistencia, latencia mínima (~1ms), ideal para eventos en vivo
-- **List**: persistencia, latencia ~1ms, ideal para queue/buffer durable
+IDS es captura pasiva por interfaz. IPS es bloqueo activo.
 
-Se eligió **Channel** porque los eventos ya se persisten en Elasticsearch, y se necesita latencia mínima para dashboards realtime.
+### Logstash como distribuidor
 
-### 7
-Configuracion enfocada en laboratorio y aprendizaje. Simplifica operacion, pero no representa alta disponibilidad.
- en Elasticsearch
-- `eslogs`: logs internos de Elasticsearch
-- `filebeat-data`: estado de lectura de Filebeat (offsets)
-- `suricata-logs`: `eve.json` y otros logs de Suricata
-- Redis: en memoria, sin volumen persistente (datos se pierden al reiniciar)educir friccion inicial. No es una configuracion recomendada para produccion.
+Filebeat solo permite un output activo. Como el proyecto necesita guardar historico en Elasticsearch y emitir eventos en tiempo real por Redis, Filebeat envia a Logstash y Logstash replica hacia ambos destinos.
 
-## Dependencias de arranque
+### Redis Pub/Sub
 
-- Redis sin autenticacion y Pub/Sub sin persistencia
-- Dependencia fuerte de la interfaz de red configurada
-- Requiere permisos elevados para captura con Suricata
-- Ajustes de kernel/memoria pueden ser necesarios en Linux
-- Si Redis se reinicia, suscriptores pierden conexión y eventos en tránsito desaparecenaz definida en `.env`.
+Redis se usa como canal realtime, no como almacenamiento. Si no hay suscriptores conectados, los mensajes publicados se pierden. Elasticsearch sigue siendo la fuente historica.
 
-## Persistencia
+### Elasticsearch single-node
 
-- `esdata`: datos indexados.
+Elasticsearch corre como nodo unico para reducir complejidad. Esto es suficiente para laboratorio y demos, pero no entrega alta disponibilidad.
+
+## Puertos
+
+Desarrollo:
+
+- Elasticsearch: `localhost:9200`
+- Kibana: `localhost:5601`
+- Redis: `localhost:6379`
+
+Produccion basica:
+
+- Elasticsearch: `127.0.0.1:9200`
+- Kibana: `127.0.0.1:5601`
+- Redis: `127.0.0.1:6379`
+
+Logstash escucha Beats dentro de la red Docker en el puerto `5044`; no se publica al host.
+
+## Volumenes
+
+- `suricata-logs`: contiene `eve.json` y logs de Suricata; lo comparten Suricata y Filebeat.
+- `filebeat-data`: guarda offsets para evitar relecturas completas tras reinicios.
+- `esdata`: datos indexados de Elasticsearch.
 - `eslogs`: logs internos de Elasticsearch.
-- `filebeat-data`: estado de lectura de Filebeat.
-- `suricata-logs`: `eve.json` y otros logs de Suricata.
+
+Redis no tiene volumen persistente porque se usa solo para Pub/Sub.
 
 ## Riesgos conocidos
 
-- Exposicion de puertos 9200 y 5601 sin autenticacion.
-- Dependencia fuerte de la interfaz de red configurada.
-- Requiere permisos elevados para captura con Suricata.
-- Ajustes de kernel/memoria pueden ser necesarios en Linux.
- y agregar autenticacion en Redis
-2. Restringir puertos con firewall o bind a localhost
-3. Agregar monitoreo y alertas sobre salud del stack (Elasticsearch, Logstash, Redis)
-4. Integrar backend (ej. FastAPI) para consultas controladas y consumo de eventos realtime
-5. Persistencia opcional en Redis con estructura List para eventos críticos que requieran garantía de entrega
-6. Enriquecimiento de eventos en Logstash (GeoIP, conversión de campos) para mejor análisis
-2. Restringir puertos con firewall o bind a localhost.
-3. Agregar monitoreo y alertas sobre salud del stack.
-4. Integrar backend (ej. FastAPI) para consultas controladas.
+- Suricata requiere privilegios elevados y `network_mode: host`.
+- IPS modifica reglas `iptables`/`ip6tables` mientras el contenedor esta activo.
+- Elasticsearch, Kibana y Redis no tienen autenticacion en la configuracion actual.
+- Elasticsearch corre en single-node.
+- Redis Pub/Sub no persiste mensajes.
+- `SURICATA_INTERFACE` debe coincidir con interfaces reales cuando se usa modo IDS.
+
+## Mejoras futuras
+
+- Habilitar seguridad de Elastic con usuarios, contrasenas y TLS.
+- Agregar autenticacion a Redis o restringirlo completamente a red interna.
+- Definir politicas de retencion y backup para Elasticsearch.
+- Agregar monitoreo de salud y recursos.
+- Enriquecer eventos en Logstash, por ejemplo GeoIP o normalizacion de campos.

@@ -1,87 +1,89 @@
 # Suricata
 
-## Que es
+Suricata es el motor IDS/IPS del proyecto. Inspecciona trafico de red, aplica reglas y genera eventos estructurados en formato EVE JSON.
 
-Suricata es un IDS/IPS y motor de Network Security Monitoring. Inspecciona trafico de red y genera eventos estructurados (EVE JSON) que luego pueden analizarse en plataformas como Elastic.
+## Rol en el proyecto
 
-## Por que se usa en este proyecto
+- Captura o intercepta trafico del host.
+- Genera `/var/log/suricata/eve.json`.
+- Aplica reglas locales para alertar o bloquear trafico.
+- Entrega los eventos a Filebeat mediante el volumen `suricata-logs`.
 
-- Permite capturar y clasificar eventos de red en tiempo real.
-- Genera salida JSON estandar para pipelines de observabilidad.
-- Tiene ecosistema maduro de reglas y eventos por protocolo.
+## Configuracion real
 
-## Como esta configurado aqui
+Archivos principales:
 
-### Contenedor
+- `suricata/Dockerfile`: instala Suricata, `iptables`, `iproute2`, `ping` y `curl` sobre Debian 12.
+- `suricata/entrypoint.sh`: decide si arranca en modo `ips` o `ids`.
+- `suricata/config/suricata.yaml`: configuracion principal.
+- `suricata/config/rules/suricata.rules`: reglas locales.
 
-- Imagen base: Debian 12 con paquete Suricata instalado.
-- Arranque via `entrypoint.sh`.
-- Ejecucion con `network_mode: host`, `privileged: true`, `NET_ADMIN` y `NET_RAW`.
+Compose ejecuta Suricata con:
 
-### Interfaz de captura
+- `network_mode: host`
+- `privileged: true`
+- capacidades `NET_ADMIN` y `NET_RAW`
+- volumen `suricata-logs:/var/log/suricata`
 
-En modo `ids`, se toma de la variable `SURICATA_INTERFACE` en `.env`.
+## Modos de ejecucion
 
-Soporta una o varias interfaces separadas por coma.
+Modo IPS por defecto:
 
-Ejemplos:
+```env
+SURICATA_MODE=ips
+```
 
-- Una interfaz: `SURICATA_INTERFACE=wlp0s20f3`
-- Varias interfaces: `SURICATA_INTERFACE=wlp0s20f3,zttqhrw6r3`
-- En este host, las interfaces visibles son `wlp0s20f3`, `zttqhrw6r3`, `zttqh2xyhk` y `virbr0`.
+En IPS, el entrypoint agrega reglas `NFQUEUE` en `OUTPUT` para IPv4 e IPv6 y ejecuta Suricata con `-q 0`. Este modo permite que reglas `reject` o `drop` bloqueen trafico.
 
-Si vas a inspeccionar trafico real de la tarjeta Wi-Fi, `wlp0s20f3` debe ser la interfaz principal.
+Modo IDS opcional:
 
-En modo `ips`, Suricata no usa `SURICATA_INTERFACE`; el contenedor engancha `NFQUEUE` para que las reglas `drop` bloqueen el trafico saliente.
+```env
+SURICATA_MODE=ids
+SURICATA_INTERFACE=wlp0s20f3
+```
 
-El modo de ejecucion se controla con `SURICATA_MODE`:
+En IDS, Suricata captura pasivamente desde una o varias interfaces separadas por coma:
 
-- `SURICATA_MODE=ids` para captura pasiva en una o varias interfaces.
-- `SURICATA_MODE=ips` para bloqueo real con `NFQUEUE`.
+```env
+SURICATA_INTERFACE=wlp0s20f3,virbr0
+```
 
-En modo `ids`, el `entrypoint.sh` transforma ese valor en multiples flags de Suricata:
-
-- `-i wlp0s20f3 -i zttqhrw6r3`
-
-### Configuracion principal
-
-Archivo: `suricata/config/suricata.yaml`
-
-Puntos clave:
-
-- `default-log-dir: /var/log/suricata/`
-- `eve-log` habilitado con archivo `eve.json`
-- tipos de eventos extendidos (alert, frame, anomaly, http y otros segun config)
-- `default-rule-path: /var/lib/suricata/rules`
-- `rule-files` incluye `suricata.rules`
-
-### Regla local de validacion
+## Reglas locales
 
 Archivo: `suricata/config/rules/suricata.rules`
 
-```text
-alert icmp any any -> any any (msg:"PING detectado"; sid:1000001; rev:1;)
+Reglas actuales:
+
+- alerta ICMP para validar `ping`.
+- bloqueo de `example.com` por TLS SNI.
+- bloqueo de `example.com` por DNS.
+- bloqueo de `example.com` por HTTP host.
+
+## Validacion rapida
+
+Ver logs:
+
+```bash
+docker compose logs --tail=100 suricata
 ```
 
-Esta regla permite validar facilmente el flujo generando trafico ICMP.
+Generar trafico:
 
-## Flujo de datos que produce
+```bash
+ping -c 4 8.8.8.8
+curl http://neverssl.com
+curl http://example.com
+```
 
-1. Captura paquetes en la interfaz del host.
-2. Aplica decodificacion y reglas.
-3. Escribe eventos en `/var/log/suricata/eve.json`.
-4. Filebeat lee ese archivo desde el volumen compartido.
+Confirmar que el flujo llega a Elasticsearch:
 
-## Buenas practicas
+```bash
+curl http://localhost:9200/_cat/indices?v
+```
 
-- Verificar interfaz antes de levantar (`ip -o link show`).
-- Mantener reglas versionadas y con `sid` unicos.
-- Separar reglas de laboratorio y reglas de produccion.
-- Revisar crecimiento de `eve.json` y rotacion de logs.
+## Riesgos
 
-## Riesgos y limitaciones
-
-- Requiere privilegios altos en contenedor.
-- Dependencia del host networking.
-- Sin ajuste fino de rendimiento para trafico alto.
-- Sin healthcheck propio en compose (se confia en restart policy).
+- Requiere privilegios elevados.
+- En modo IPS modifica reglas `iptables`/`ip6tables` mientras el contenedor esta activo.
+- En modo IDS depende de que `SURICATA_INTERFACE` exista en el host.
+- No tiene healthcheck propio en Compose.
