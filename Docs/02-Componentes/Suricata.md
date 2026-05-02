@@ -20,7 +20,7 @@ Suricata es un IDS/IPS y motor de Network Security Monitoring. Inspecciona trafi
 
 ### Interfaz de captura
 
-Se toma de la variable `SURICATA_INTERFACE` en `.env`.
+En modo `ids`, se toma de la variable `SURICATA_INTERFACE` en `.env`.
 
 Soporta una o varias interfaces separadas por coma.
 
@@ -32,7 +32,14 @@ Ejemplos:
 
 Si vas a inspeccionar trafico real de la tarjeta Wi-Fi, `wlp0s20f3` debe ser la interfaz principal.
 
-El `entrypoint.sh` transforma ese valor en multiples flags de Suricata:
+En modo `ips`, Suricata no usa `SURICATA_INTERFACE`; el contenedor engancha `NFQUEUE` para que las reglas `drop` bloqueen el trafico saliente.
+
+El modo de ejecucion se controla con `SURICATA_MODE`:
+
+- `SURICATA_MODE=ids` para captura pasiva en una o varias interfaces.
+- `SURICATA_MODE=ips` para bloqueo real con `NFQUEUE`.
+
+En modo `ids`, el `entrypoint.sh` transforma ese valor en multiples flags de Suricata:
 
 - `-i wlp0s20f3 -i zttqhrw6r3`
 

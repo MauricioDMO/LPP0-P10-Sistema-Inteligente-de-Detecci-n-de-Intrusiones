@@ -1,1 +1,8 @@
 alert icmp any any -> any any (msg:"PING detectado"; sid:1000001; rev:1;)
+
+## HTTPS
+reject tls any any -> any any (msg:"Bloqueo example.com TLS"; tls.sni; content:"example.com"; nocase; sid:1000002; rev:1;)
+## DNS
+reject dns any any -> any any (msg:"Bloqueo example.com DNS"; dns.query; content:"example.com"; nocase; sid:1000003; rev:1;)
+## HTTP
+reject tcp any any -> any 80 (msg:"Bloqueo example.com HTTP"; flow:established,to_server; http.host; content:"example.com"; sid:1000004; rev:2;)
