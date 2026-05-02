@@ -81,13 +81,19 @@ Orden de inicio típico (automático en Compose):
 
 Se eligió **Channel** porque los eventos ya se persisten en Elasticsearch, y se necesita latencia mínima para dashboards realtime.
 
-### 7
-Configuracion enfocada en laboratorio y aprendizaje. Simplifica operacion, pero no representa alta disponibilidad.
- en Elasticsearch
-- `eslogs`: logs internos de Elasticsearch
-- `filebeat-data`: estado de lectura de Filebeat (offsets)
-- `suricata-logs`: `eve.json` y otros logs de Suricata
-- Redis: en memoria, sin volumen persistente (datos se pierden al reiniciar)educir friccion inicial. No es una configuracion recomendada para produccion.
+### 7) Modos de red de Suricata
+
+El proyecto soporta tres modos operativos:
+
+- `local-ips`: modo normal actual. El contenedor agrega NFQUEUE en `OUTPUT` para inspeccionar trafico generado por el host/VM.
+- `ids`: modo pasivo. Suricata captura en una o varias interfaces definidas por `SURICATA_INTERFACE`.
+- `gateway-ips`: modo gateway L3. La VM host aplica NAT, DHCP y NFQUEUE en `FORWARD`; el contenedor solo ejecuta Suricata con `-q`.
+
+`docker-compose.yml` usa el modo normal/local. `docker-compose.gateway.yml` es standalone y se usa cuando la VM Debian actua como gateway para clientes de una LAN.
+
+### 8) Configuracion de laboratorio
+
+Configuracion enfocada en laboratorio y aprendizaje. Simplifica operacion, pero no representa alta disponibilidad ni hardening empresarial.
 
 ## Dependencias de arranque
 
@@ -95,7 +101,8 @@ Configuracion enfocada en laboratorio y aprendizaje. Simplifica operacion, pero 
 - Dependencia fuerte de la interfaz de red configurada
 - Requiere permisos elevados para captura con Suricata
 - Ajustes de kernel/memoria pueden ser necesarios en Linux
-- Si Redis se reinicia, suscriptores pierden conexión y eventos en tránsito desaparecenaz definida en `.env`.
+- Si Redis se reinicia, suscriptores pierden conexión y eventos en tránsito desaparecen.
+- En modo gateway, si Suricata no escucha NFQUEUE, el trafico de clientes puede quedar bloqueado hasta limpiar reglas.
 
 ## Persistencia
 
@@ -103,6 +110,7 @@ Configuracion enfocada en laboratorio y aprendizaje. Simplifica operacion, pero 
 - `eslogs`: logs internos de Elasticsearch.
 - `filebeat-data`: estado de lectura de Filebeat.
 - `suricata-logs`: `eve.json` y otros logs de Suricata.
+- Redis: en memoria, sin volumen persistente.
 
 ## Riesgos conocidos
 
@@ -110,12 +118,13 @@ Configuracion enfocada en laboratorio y aprendizaje. Simplifica operacion, pero 
 - Dependencia fuerte de la interfaz de red configurada.
 - Requiere permisos elevados para captura con Suricata.
 - Ajustes de kernel/memoria pueden ser necesarios en Linux.
- y agregar autenticacion en Redis
-2. Restringir puertos con firewall o bind a localhost
-3. Agregar monitoreo y alertas sobre salud del stack (Elasticsearch, Logstash, Redis)
-4. Integrar backend (ej. FastAPI) para consultas controladas y consumo de eventos realtime
-5. Persistencia opcional en Redis con estructura List para eventos críticos que requieran garantía de entrega
-6. Enriquecimiento de eventos en Logstash (GeoIP, conversión de campos) para mejor análisis
-2. Restringir puertos con firewall o bind a localhost.
+- En modo gateway, una mala seleccion de `WAN_IF`/`LAN_IF` puede cortar conectividad del laboratorio.
+
+## Siguientes mejoras
+
+1. Habilitar seguridad de Elastic y agregar autenticacion en Redis.
+2. Restringir puertos con firewall o bind a interfaces especificas.
 3. Agregar monitoreo y alertas sobre salud del stack.
-4. Integrar backend (ej. FastAPI) para consultas controladas.
+4. Integrar backend para consultas controladas y consumo de eventos realtime.
+5. Persistencia opcional en Redis con estructura List para eventos criticos.
+6. Enriquecimiento de eventos en Logstash para mejor analisis.

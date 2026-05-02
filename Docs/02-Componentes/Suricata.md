@@ -32,12 +32,17 @@ Ejemplos:
 
 Si vas a inspeccionar trafico real de la tarjeta Wi-Fi, `wlp0s20f3` debe ser la interfaz principal.
 
-En modo `ips`, Suricata no usa `SURICATA_INTERFACE`; el contenedor engancha `NFQUEUE` para que las reglas `drop` bloqueen el trafico saliente.
+En modo `local-ips`, Suricata no usa `SURICATA_INTERFACE`; el contenedor engancha `NFQUEUE` en `OUTPUT` para que las reglas `drop` o `reject` bloqueen trafico generado por el host/VM.
+
+En modo `gateway-ips`, el contenedor no modifica iptables. La VM Debian configura NAT y reglas `NFQUEUE` en `FORWARD`, y Suricata solo escucha la cola con `-q`.
 
 El modo de ejecucion se controla con `SURICATA_MODE`:
 
 - `SURICATA_MODE=ids` para captura pasiva en una o varias interfaces.
-- `SURICATA_MODE=ips` para bloqueo real con `NFQUEUE`.
+- `SURICATA_MODE=local-ips` para conservar el IPS local actual con `NFQUEUE` en `OUTPUT`.
+- `SURICATA_MODE=gateway-ips` para gateway L3 con `NFQUEUE` en `FORWARD` configurado por scripts del host.
+
+`SURICATA_MODE=ips` se acepta como alias heredado de `local-ips`.
 
 En modo `ids`, el `entrypoint.sh` transforma ese valor en multiples flags de Suricata:
 
@@ -85,3 +90,4 @@ Esta regla permite validar facilmente el flujo generando trafico ICMP.
 - Dependencia del host networking.
 - Sin ajuste fino de rendimiento para trafico alto.
 - Sin healthcheck propio en compose (se confia en restart policy).
+- En modo gateway, si Suricata no esta escuchando la cola y las reglas `NFQUEUE` siguen activas, el trafico de clientes puede quedar bloqueado hasta ejecutar `suricata-gateway-cleanup` o `unmount.sh`.

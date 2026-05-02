@@ -281,7 +281,39 @@ docker exec redis redis-cli PING
 curl -s http://localhost:9200 | cat
 ```
 
-## 10) Cuando escalar a hardening
+## 10) Gateway sin internet en clientes
+
+### Causa
+
+- `WAN_IF` o `LAN_IF` mal configuradas en `/etc/suricata-lab/gateway.env`.
+- Suricata no esta corriendo pero las reglas `NFQUEUE` siguen activas.
+- `dnsmasq` no entrego IP al cliente.
+
+### Verificaciones
+
+```bash
+ip -br addr
+iptables -vnL FORWARD
+iptables -t nat -vnL POSTROUTING
+systemctl status dnsmasq
+docker compose -f docker-compose.gateway.yml logs -f suricata
+```
+
+### Solucion rapida
+
+```bash
+sudo /usr/local/sbin/suricata-gateway-cleanup
+sudo /usr/local/sbin/suricata-gateway-apply
+docker compose -f docker-compose.gateway.yml up -d suricata
+```
+
+Para desmontar todo lo instalado por los scripts:
+
+```bash
+sudo /usr/local/sbin/suricata-gateway-unmount
+```
+
+## 11) Cuando escalar a hardening
 
 Si el entorno deja de ser solo laboratorio, priorizar:
 

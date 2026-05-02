@@ -39,8 +39,16 @@ Configurar el archivo `.env` (o copiar desde `.env.example`):
 
 ```env
 STACK_VERSION=8.19.14
+SURICATA_MODE=local-ips
+SURICATA_NFQUEUE_NUM=0
 SURICATA_INTERFACE=wlp0s20f3
 ```
+
+Modos soportados por Suricata:
+
+- `local-ips`: modo actual; inspecciona trafico generado por el host/VM usando NFQUEUE en `OUTPUT`.
+- `ids`: captura pasiva en `SURICATA_INTERFACE`.
+- `gateway-ips`: para VM gateway; Suricata escucha NFQUEUE y las reglas de red viven en el host Debian.
 
 ## Levantamiento en desarrollo
 
@@ -73,6 +81,12 @@ docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.prod.yml run --rm filebeat filebeat setup -e --strict.perms=false
 ```
 
+## Levantamiento en modo gateway
+
+El modo gateway usa `docker-compose.gateway.yml` y scripts en `scripts/gateway/`. Esta preparado para una VM Debian con dos interfaces: WAN hacia la red externa y LAN hacia el AP.
+
+Ver guia: [Docs/03-Operacion/Levantamiento-Gateway.md](Docs/03-Operacion/Levantamiento-Gateway.md)
+
 ## Documentacion
 
 Indice general: [Docs/README.md](Docs/README.md)
@@ -88,6 +102,7 @@ Documentos agrupados:
 - Operacion:
   - [Docs/03-Operacion/Levantamiento-Desarrollo.md](Docs/03-Operacion/Levantamiento-Desarrollo.md)
   - [Docs/03-Operacion/Levantamiento-Produccion.md](Docs/03-Operacion/Levantamiento-Produccion.md)
+  - [Docs/03-Operacion/Levantamiento-Gateway.md](Docs/03-Operacion/Levantamiento-Gateway.md)
   - [Docs/03-Operacion/Inicio-y-Verificacion.md](Docs/03-Operacion/Inicio-y-Verificacion.md)
   - [Docs/03-Operacion/Troubleshooting.md](Docs/03-Operacion/Troubleshooting.md)
 - Entregables:

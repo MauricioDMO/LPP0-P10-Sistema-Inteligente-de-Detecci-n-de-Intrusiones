@@ -10,8 +10,8 @@ services:
       network.host: 0.0.0.0
       xpack.security.enabled: "false"
       ES_JAVA_OPTS: -Xms512m -Xmx512m
-    ports:
-      - "9200:9200"
+    expose:
+      - "9200"
     volumes:
       - esdata:/usr/share/elasticsearch/data
       - eslogs:/usr/share/elasticsearch/logs
@@ -38,7 +38,7 @@ services:
     environment:
       SERVER_HOST: 0.0.0.0
     ports:
-      - "5601:5601"
+      - "${GATEWAY_LAN_IP:-192.168.50.1}:5601:5601"
     restart: unless-stopped
 
   suricata:
@@ -51,8 +51,7 @@ services:
       - NET_ADMIN
       - NET_RAW
     environment:
-      SURICATA_MODE: ${SURICATA_MODE:-local-ips}
-      SURICATA_INTERFACE: ${SURICATA_INTERFACE}
+      SURICATA_MODE: gateway-ips
       SURICATA_NFQUEUE_NUM: ${SURICATA_NFQUEUE_NUM:-0}
     volumes:
       - ./suricata/config/suricata.yaml:/etc/suricata/suricata.yaml:ro
@@ -66,8 +65,8 @@ services:
   redis:
     image: redis:7
     container_name: redis
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
     restart: unless-stopped
 
   logstash:

@@ -6,6 +6,7 @@ Este documento explica como iniciar el stack y que puedes ir a revisar cuando to
 
 - Desarrollo: revisa [Levantamiento-Desarrollo.md](Levantamiento-Desarrollo.md).
 - Produccion: revisa [Levantamiento-Produccion.md](Levantamiento-Produccion.md).
+- Gateway: revisa [Levantamiento-Gateway.md](Levantamiento-Gateway.md).
 
 Este documento se mantiene como guia general de validacion end-to-end.
 
@@ -30,6 +31,8 @@ Valores esperados:
 
 ```env
 STACK_VERSION=8.19.14
+SURICATA_MODE=local-ips
+SURICATA_NFQUEUE_NUM=0
 SURICATA_INTERFACE=wlp0s20f3
 ```
 
@@ -42,6 +45,8 @@ SURICATA_INTERFACE=wlp0s20f3,zttqhrw6r3
 Si ves `eth0` en ejemplos anteriores, no lo tomes como valor por defecto para este host: aqui las interfaces detectadas son `wlp0s20f3`, `zttqhrw6r3`, `zttqh2xyhk` y `virbr0`.
 
 Si tu interfaz cambia, ajusta `SURICATA_INTERFACE` con una o varias interfaces validas del host.
+
+Para gateway no uses este flujo general. Usa `scripts/gateway/start-gateway.sh`, que aplica NAT/DHCP/NFQUEUE y levanta `docker-compose.gateway.yml`.
 
 ## 3) Levantar el stack
 

@@ -32,6 +32,8 @@ Archivo `.env`:
 
 - `STACK_VERSION` de Elastic.
 - `SURICATA_INTERFACE` valida en el host de produccion (una o varias interfaces separadas por coma).
+- `SURICATA_MODE`, normalmente `local-ips` para conservar el comportamiento actual o `ids` para captura pasiva.
+- `SURICATA_NFQUEUE_NUM`, por defecto `0`.
 
 Ejemplo:
 
@@ -42,6 +44,8 @@ SURICATA_INTERFACE=ens33,virbr0
 ## 3) Arranque con compose de produccion
 
 El archivo `docker-compose.prod.yml` es una definicion completa para produccion basica. Publica Elasticsearch/Kibana solo en localhost del servidor (`127.0.0.1`). Logstash y Redis corren en la red interna (no se exponen).
+
+Este compose no es el modo gateway. Para NAT, DHCP y NFQUEUE en `FORWARD`, usa `docker-compose.gateway.yml` con la guia de gateway.
 
 Validar compose de produccion:
 

@@ -20,6 +20,8 @@ Revisar `.env`:
 
 ```env
 STACK_VERSION=8.19.14
+SURICATA_MODE=local-ips
+SURICATA_NFQUEUE_NUM=0
 SURICATA_INTERFACE=wlp0s20f3
 ```
 
@@ -32,6 +34,8 @@ SURICATA_INTERFACE=wlp0s20f3
 En este entorno ya migrado a Docker Engine nativo, Suricata puede ver interfaces reales del host. Sin embargo, durante validacion AF_PACKET reporto error de fanout en `zttqhrw6r3` y `virbr0`, por lo que la interfaz recomendada y estable es `wlp0s20f3`.
 
 Si la interfaz cambia en tu equipo, ajusta `SURICATA_INTERFACE` con una o varias interfaces validas.
+
+`local-ips` conserva el comportamiento actual: el contenedor agrega NFQUEUE en `OUTPUT` y Suricata inspecciona trafico generado por el host/VM. Para captura pasiva, cambia a `SURICATA_MODE=ids`.
 
 ## 3) Arranque paso a paso
 

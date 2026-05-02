@@ -8,6 +8,8 @@ RUN apt-get update \
   iputils-ping \
   ca-certificates \
   curl \
+  procps \
+  libcap2-bin \
   && rm -rf /var/lib/apt/lists/*
 
 COPY entrypoint.sh /entrypoint.sh

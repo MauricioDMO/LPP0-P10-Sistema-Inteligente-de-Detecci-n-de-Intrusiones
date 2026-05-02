@@ -20,13 +20,15 @@ Este directorio centraliza la documentacion tecnica del stack IDS que usa Surica
 7. [Kibana](02-Componentes/Kibana.md)
 8. [Levantamiento en Desarrollo](03-Operacion/Levantamiento-Desarrollo.md)
 9. [Levantamiento en Produccion](03-Operacion/Levantamiento-Produccion.md)
-10. [Inicio y Verificacion](03-Operacion/Inicio-y-Verificacion.md)
-11. [Troubleshooting](03-Operacion/Troubleshooting.md)
+10. [Levantamiento Gateway](03-Operacion/Levantamiento-Gateway.md)
+11. [Inicio y Verificacion](03-Operacion/Inicio-y-Verificacion.md)
+12. [Troubleshooting](03-Operacion/Troubleshooting.md)
 
 ## Si quieres levantar rapido
 
 - Desarrollo: ver [Levantamiento en Desarrollo](03-Operacion/Levantamiento-Desarrollo.md).
 - Produccion: ver [Levantamiento en Produccion](03-Operacion/Levantamiento-Produccion.md).
+- Gateway: ver [Levantamiento Gateway](03-Operacion/Levantamiento-Gateway.md).
 
 Ambos documentos incluyen comandos completos y checklist.
 
@@ -53,7 +55,7 @@ Este stack esta optimizado para laboratorio. Antes de exponer en red real, revis
 - [02-Componentes/Kibana.md](02-Componentes/Kibana.md): visualizacion y exploracion de eventos.
 - [03-Operacion/Levantamiento-Desarrollo.md](03-Operacion/Levantamiento-Desarrollo.md): arranque rapido para entorno de trabajo.
 - [03-Operacion/Levantamiento-Produccion.md](03-Operacion/Levantamiento-Produccion.md): arranque con override de produccion.
+- [03-Operacion/Levantamiento-Gateway.md](03-Operacion/Levantamiento-Gateway.md): arranque como gateway L3 con NAT, DHCP y NFQUEUE.
 - [03-Operacion/Inicio-y-Verificacion.md](03-Operacion/Inicio-y-Verificacion.md): validaciones de Logstash, Redis y end-to-end.
 - [03-Operacion/Troubleshooting.md](03-Operacion/Troubleshooting.md): errores comunes, Logstash y Redis.
 - [04-Entregables/Primer-Doc.md](04-Entregables/Primer-Doc.md): documento consolidado de la primera entrega.
-

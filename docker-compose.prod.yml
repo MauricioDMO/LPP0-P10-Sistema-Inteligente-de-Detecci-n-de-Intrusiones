@@ -51,7 +51,9 @@ services:
       - NET_ADMIN
       - NET_RAW
     environment:
+      SURICATA_MODE: ${SURICATA_MODE:-local-ips}
       SURICATA_INTERFACE: ${SURICATA_INTERFACE}
+      SURICATA_NFQUEUE_NUM: ${SURICATA_NFQUEUE_NUM:-0}
     volumes:
       - ./suricata/config/suricata.yaml:/etc/suricata/suricata.yaml:ro
       - ./suricata/config/classification.config:/etc/suricata/classification.config:ro
