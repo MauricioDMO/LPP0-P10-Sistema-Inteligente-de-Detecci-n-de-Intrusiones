@@ -7,10 +7,11 @@ El objetivo es que cualquier integrante pueda entender la arquitectura, levantar
 ## Lectura recomendada
 
 1. [Arquitectura](01-Arquitectura/Arquitectura.md)
-2. [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md)
-3. [Levantamiento en produccion basica](03-Operacion/Levantamiento-Produccion.md)
-4. [Inicio y verificacion](03-Operacion/Inicio-y-Verificacion.md)
-5. [Troubleshooting](03-Operacion/Troubleshooting.md)
+2. [Flujo del proyecto y backend](01-Arquitectura/Flujo-y-Backend.md)
+3. [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md)
+4. [Levantamiento en produccion basica](03-Operacion/Levantamiento-Produccion.md)
+5. [Inicio y verificacion](03-Operacion/Inicio-y-Verificacion.md)
+6. [Troubleshooting](03-Operacion/Troubleshooting.md)
 
 ## Levantar rapido
 
@@ -46,6 +47,7 @@ Trafico de red
 ## Documentos
 
 - [Arquitectura](01-Arquitectura/Arquitectura.md): flujo completo, decisiones tecnicas, persistencia y riesgos.
+- [Flujo del proyecto y backend](01-Arquitectura/Flujo-y-Backend.md): diagrama y separacion entre historico y tiempo real.
 - [Suricata](02-Componentes/Suricata.md): captura, modo IPS/IDS, reglas y salida EVE JSON.
 - [Filebeat](02-Componentes/Filebeat.md): lectura de `eve.json` y envio a Logstash.
 - [Logstash](02-Componentes/Logstash.md): distribucion a Elasticsearch y Redis.

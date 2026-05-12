@@ -80,6 +80,7 @@ Indice general: [Docs/README.md](Docs/README.md)
 Documentos agrupados:
 
 - Arquitectura: [Docs/01-Arquitectura/Arquitectura.md](Docs/01-Arquitectura/Arquitectura.md)
+- Flujo y backend: [Docs/01-Arquitectura/Flujo-y-Backend.md](Docs/01-Arquitectura/Flujo-y-Backend.md)
 - Componentes:
   - [Docs/02-Componentes/Suricata.md](Docs/02-Componentes/Suricata.md)
   - [Docs/02-Componentes/Filebeat.md](Docs/02-Componentes/Filebeat.md)
