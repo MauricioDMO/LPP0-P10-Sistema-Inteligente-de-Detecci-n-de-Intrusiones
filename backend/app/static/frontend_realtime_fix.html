@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Suricata Frontend - Eventos en Tiempo Real (fix)</title>
+  <style>
+  body{font-family:system-ui;background:#08101f;color:#e5eefc;margin:0}
+  .badge{padding:6px 12px;border-radius:999px;background:rgba(77,212,172,0.16);color:#4dd4ac}
+  .badge.disconnected{background:rgba(255,107,107,0.16);color:#ff6b6b}
+  .panel{background:rgba(17,25,46,0.7);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.08)}
+  .event{padding:8px;margin-bottom:8px;border-radius:8px;background:rgba(255,255,255,0.02);border-left:3px solid rgba(77,212,172,0.3)}
+  .tab-btn{padding:8px 12px;border:none;background:transparent;color:#92a4c5;border-radius:6px;cursor:pointer;font-weight:500;transition:all 0.2s}
+  .tab-btn.active{background:rgba(77,212,172,0.2);color:#4dd4ac}
+  .tab-btn:hover{background:rgba(77,212,172,0.1)}
+  .tab-count{background:rgba(77,212,172,0.3);border-radius:4px;padding:2px 6px;margin-left:4px;font-size:11px}
+  .event.alert{border-left-color:#ff6b6b}
+  .event.hidden{display:none}
+  </style>
+</head>
+<body>
+    <header style="padding:12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1)">
+    <div style="font-weight:700;font-size:18px">Suricata Monitor</div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <div class="badge" id="status">Conectando...</div>
+      <div id="debugPanel" style="font-size:12px;color:#92a4c5">WS: <span id="wsUrlDisplay" style="font-family:monospace"></span> · <span id="lastLog">esperando...</span></div>
+    </div>
+  </header>
+
+  <main style="display:flex;gap:12px;padding:12px">
+    <section style="flex:1">
+      <div class="panel">
+        <h3 style="margin-top:0">Eventos en tiempo real</h3>
+        
+        <div id="filterTabs" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:8px">
+          <button class="tab-btn active" data-filter="all">Todos</button>
+          <button class="tab-btn" data-filter="dns">DNS <span class="tab-count dns-count">0</span></button>
+          <button class="tab-btn" data-filter="http">HTTP <span class="tab-count http-count">0</span></button>
+          <button class="tab-btn" data-filter="tls">TLS <span class="tab-count tls-count">0</span></button>
+          <button class="tab-btn" data-filter="ssh">SSH <span class="tab-count ssh-count">0</span></button>
+          <button class="tab-btn" data-filter="ftp">FTP <span class="tab-count ftp-count">0</span></button>
+          <button class="tab-btn" data-filter="smtp">SMTP <span class="tab-count smtp-count">0</span></button>
+          <button class="tab-btn" data-filter="alert" style="color:#ff6b6b">⚠️ ALERT <span class="tab-count alert-count" style="background:rgba(255,107,107,0.3)">0</span></button>
+        </div>
+        
+        <div id="eventList"><div style="color:#92a4c5;padding:20px;text-align:center">Esperando eventos...</div></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const hostname = window.location.hostname;
+    const backendHost = hostname + ':8000';
+    const wsUrl = (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + backendHost + '/ws';
+
+    let ws = null;
+    let currentFilter = 'all';
+    const RELEVANT_EVENT_TYPES = new Set(['alert', 'dns', 'http', 'tls', 'ssh', 'ftp', 'smtp', 'file']);
+    const eventCounts = { all: 0, dns: 0, http: 0, tls: 0, ssh: 0, ftp: 0, smtp: 0, alert: 0, hidden: 0 };
+    const allEvents = [];
+
+    function updateStatus(text, disconnected=false){
+      const b = document.getElementById('status');
+      b.textContent = text;
+      b.classList.toggle('disconnected', disconnected);
+    }
+
+    function connect(){
+      console.log('WS connecting to', wsUrl);
+      document.getElementById('wsUrlDisplay').textContent = wsUrl;
+      try{
+        ws = new WebSocket(wsUrl);
+      }catch(err){
+        console.error('WS constructor error', err);
+        updateStatus('Error de creación WS', true);
+        setTimeout(connect, 3000);
+        return;
+      }
+
+      ws.onopen = (ev) => {
+        console.log('WS open');
+        updateStatus('Conectado', false);
+        document.getElementById('lastLog').textContent = 'online';
+      };
+      ws.onmessage = (e) => {
+        try{
+          const data = JSON.parse(e.data);
+          if(data.type==='pong') return;
+          renderEvent(data);
+        }catch(err){ console.error('msg parse', err); }
+      };
+      ws.onerror = (ev)=> {
+        console.error('WS error', ev);
+        updateStatus('Error de conexión', true);
+        document.getElementById('lastLog').textContent = 'error';
+      };
+      ws.onclose = (ev)=> {
+        console.warn('WS closed');
+        updateStatus('Desconectado', true);
+        document.getElementById('lastLog').textContent = 'offline';
+        setTimeout(connect, 3000);
+      };
+    }
+
+    function getEventType(evt){
+      return String(evt?.suricata?.eve?.event_type || evt?.event_type || evt?.event?.module || 'event').toLowerCase();
+    }
+
+    function getEventTitle(evt, eventType){
+      if(eventType === 'alert'){
+        return evt?.alert?.signature || evt?.suricata?.eve?.alert?.signature || 'Alerta';
+      }
+      if(eventType === 'dns'){
+        return evt?.dns?.question?.registered_domain
+          || evt?.suricata?.eve?.dns?.rrname
+          || evt?.suricata?.eve?.dns?.query
+          || 'DNS Query';
+      }
+      if(eventType === 'http'){
+        return evt?.http?.hostname || evt?.http?.url || 'HTTP Request';
+      }
+      if(eventType === 'tls'){
+        return evt?.tls?.sni || evt?.tls?.subject || 'TLS Connection';
+      }
+      if(eventType === 'ssh') return evt?.ssh?.client?.software_version || 'SSH Connection';
+      if(eventType === 'ftp') return evt?.ftp?.command || 'FTP Command';
+      if(eventType === 'smtp') return evt?.smtp?.helo || 'SMTP Connection';
+      return eventType;
+    }
+
+    function isRelevant(evt, eventType){
+      if(eventType === 'flow') return Boolean(evt?.suricata?.eve?.flow?.alerted || evt?.alert);
+      if(eventType === 'stats' || eventType === 'pcap') return false;
+      return RELEVANT_EVENT_TYPES.has(eventType);
+    }
+
+    function renderEvent(evt){
+      const eventType = getEventType(evt);
+      if(!isRelevant(evt, eventType)){
+        eventCounts.hidden += 1;
+        return;
+      }
+
+      eventCounts.all += 1;
+      eventCounts[eventType] = (eventCounts[eventType] || 0) + 1;
+      updateCounters();
+
+      const list = document.getElementById('eventList');
+      if(list.firstChild?.textContent?.includes('Esperando')){
+        list.innerHTML = '';
+      }
+
+      const el = document.createElement('div');
+      el.className = `event ${eventType}`;
+      el.dataset.type = eventType;
+      el.dataset.hidden = currentFilter !== 'all' && currentFilter !== eventType ? 'true' : 'false';
+      if(el.dataset.hidden === 'true') el.classList.add('hidden');
+
+      const t = new Date(evt.timestamp || evt['@timestamp'] || Date.now()).toLocaleTimeString();
+      const title = getEventTitle(evt, eventType);
+      const message = evt.message || evt.alert?.signature || evt.suricata?.eve?.alert?.signature || title;
+      const src = evt.src_ip || evt.source?.ip || evt.source?.address || '';
+      const dst = evt.dest_ip || evt.destination?.ip || evt.destination?.address || '';
+      const pretty = JSON.stringify(evt, null, 2);
+
+      el.innerHTML = `
+        <div style="font-weight:700;color:${eventType === 'alert' ? '#ff6b6b' : '#4dd4ac'}">${eventType.toUpperCase()} <small style='color:#92a4c5'>${t}</small></div>
+        <div style='color:#cfefff;margin:6px 0'>${message}</div>
+        <div style='color:#92a4c5;font-family:monospace;font-size:12px'>${src} → ${dst}</div>
+        <details style='margin-top:8px;cursor:pointer'><summary style='color:#92a4c5;user-select:none'>Detalles JSON</summary>
+          <pre style='color:#cfefff;background:rgba(255,255,255,0.03);padding:8px;border-radius:6px;overflow:auto;max-height:240px;margin-top:8px'>${pretty}</pre>
+        </details>
+      `;
+      list.prepend(el);
+
+      allEvents.push(evt);
+    }
+
+    function updateCounters(){
+      Object.keys(eventCounts).forEach(type => {
+        if(type !== 'hidden' && type !== 'all'){
+          const el = document.querySelector(`.${type}-count`);
+          if(el) el.textContent = eventCounts[type];
+        }
+      });
+      document.getElementById('lastLog').textContent = `shown=${eventCounts.all} hidden=${eventCounts.hidden}`;
+    }
+
+    function setFilter(filter){
+      currentFilter = filter;
+      
+      // Actualizar botones
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+      });
+
+      // Filtrar eventos
+      document.querySelectorAll('.event').forEach(el => {
+        if(filter === 'all' || el.dataset.type === filter){
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+    }
+
+    // Event listeners para tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        setFilter(e.target.closest('button').dataset.filter);
+      });
+    });
+
+    connect();
+  </script>
+</body>
+</html>
