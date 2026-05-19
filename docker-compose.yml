@@ -26,20 +26,6 @@ services:
       retries: 20
     restart: unless-stopped
 
-  kibana:
-    build:
-      context: ./kibana
-      args:
-        STACK_VERSION: ${STACK_VERSION}
-    container_name: kibana
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    environment:
-      SERVER_HOST: 0.0.0.0
-    ports:
-      - "5601:5601"
-    restart: unless-stopped
 
   suricata:
     build:
@@ -51,6 +37,7 @@ services:
       - NET_ADMIN
       - NET_RAW
     environment:
+      SURICATA_MODE: ${SURICATA_MODE}
       SURICATA_INTERFACE: ${SURICATA_INTERFACE}
     volumes:
       - ./suricata/config/suricata.yaml:/etc/suricata/suricata.yaml:ro
@@ -101,6 +88,35 @@ services:
       - suricata-logs:/var/log/suricata:ro
       - filebeat-data:/usr/share/filebeat/data
     command: [ "filebeat", "-e", "--strict.perms=false" ]
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    container_name: backend
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    environment:
+      BACKEND_REDIS_HOST: redis
+      BACKEND_REDIS_PORT: 6379
+      BACKEND_REDIS_DB: 0
+      BACKEND_REDIS_CHANNEL: suricata
+      BACKEND_ELASTICSEARCH_HOST: elasticsearch
+      BACKEND_ELASTICSEARCH_PORT: 9200
+      BACKEND_ELASTICSEARCH_SCHEME: http
+      BACKEND_ELASTICSEARCH_INDEX: suricata-*
+      BACKEND_API_HOST: 0.0.0.0
+      BACKEND_API_PORT: 8000
+      BACKEND_API_TITLE: Suricata Backend API
+      BACKEND_API_VERSION: 1.0.0
+      BACKEND_TELEGRAM_BOT_TOKEN: 8672110233:AAE0BTT_hrZD6ZFPaNsg5TE3LS3UkNyUGol
+      BACKEND_TELEGRAM_CHAT_ID: 6427506351
+      BACKEND_ABUSEIPDB_KEY: 5ad0e77ee2a865ee36f063c0ce28fdf7ba7de6d2e30246b8cf1c91002a2336d00bcf16cdb2b0e765
     restart: unless-stopped
 
 volumes:

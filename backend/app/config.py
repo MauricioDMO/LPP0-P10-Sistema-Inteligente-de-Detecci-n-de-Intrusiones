@@ -23,6 +23,16 @@ class Settings(BaseSettings):
     api_title: str = "Suricata Backend API"
     api_version: str = "1.0.0"
 
+    # Telegram
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""
+
+    # AbuseIPDB
+    abuseipdb_key: str = ""
+
+    # GeoIP
+    geoip_db_path: str = "/data/GeoLite2-City.mmdb"
+
     class Config:
         env_file = ".env"
         env_prefix = "BACKEND_"

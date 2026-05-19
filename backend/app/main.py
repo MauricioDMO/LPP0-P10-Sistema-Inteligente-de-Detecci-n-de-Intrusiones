@@ -14,6 +14,8 @@ from typing import Set
 from .config import settings
 from .redis_consumer import RedisEventConsumer
 from .filters import EventFilter, DefaultFilters, EventType
+from .enricher import enrich_event
+from . import notifier
 from .routes import events
 
 # Configurar logging
@@ -42,7 +44,8 @@ async def broadcast_event(event: dict) -> None:
 
 async def event_callback(event: dict) -> None:
     """Callback que se ejecuta cuando llega un evento de Redis."""
-    # Aplicar filtro
+    event = await enrich_event(event)
+    await notifier.process_event(event)
     if current_filter.matches(event):
         await broadcast_event(event)
 
