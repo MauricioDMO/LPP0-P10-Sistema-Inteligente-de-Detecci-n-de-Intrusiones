@@ -28,9 +28,9 @@ export default function RootLayout({
       lang="es"
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full lg:flex">
         <AppNav />
-        {children}
+        <div className="min-w-0 flex-1">{children}</div>
       </body>
     </html>
   );

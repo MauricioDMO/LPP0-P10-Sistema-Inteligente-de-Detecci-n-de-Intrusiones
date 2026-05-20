@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import type { GeoPoint, SuricataEvent } from "@/types/suricata";
 import {
   getCategory,
@@ -18,28 +19,43 @@ type EventTableProps = {
   events: SuricataEvent[];
 };
 
+const pageSizeOptions = [10, 25, 50];
+
 export function EventTable({ events }: EventTableProps) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const totalPages = Math.max(1, Math.ceil(events.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const start = (safePage - 1) * pageSize;
+  const end = Math.min(start + pageSize, events.length);
+  const visibleEvents = useMemo(() => events.slice(start, end), [end, events, start]);
+
   return (
     <section className="overflow-hidden rounded-lg border border-soc-outline/80 bg-soc-low/90 shadow-[0_18px_50px_rgba(0,0,0,0.22)]" aria-label="Tabla de eventos">
-      <div className="flex items-center justify-between gap-3 border-b border-soc-outline/80 px-4 py-3">
+      <div className="flex flex-col gap-3 border-b border-soc-outline/80 px-3 py-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-soc-muted">Eventos recientes</h2>
-          <p className="mt-1 text-xs text-soc-muted">Últimos eventos del feed, enriquecidos por backend.</p>
+          <p className="mt-1 text-xs text-soc-muted">Feed en vivo paginado para revisar sin saturar la pantalla.</p>
         </div>
-        <span className="rounded border border-soc-outline bg-soc-lowest px-2 py-1 font-mono text-xs text-soc-muted">{events.length} filtrados</span>
+        <div className="flex flex-wrap items-center gap-2 font-mono text-xs text-soc-muted">
+          <span className="rounded border border-soc-outline bg-soc-lowest px-2 py-1">{events.length} filtrados</span>
+          <span className="rounded border border-soc-outline bg-soc-lowest px-2 py-1">
+            {events.length === 0 ? "0-0" : `${start + 1}-${end}`} / {events.length}
+          </span>
+        </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-[1180px] w-full border-collapse text-left text-sm">
+        <table className="min-w-[1080px] w-full border-collapse text-left text-xs">
           <thead>
-            <tr className="border-b border-soc-outline bg-soc-lowest/95 text-[11px] uppercase tracking-[0.12em] text-soc-muted">
-              <th className="px-3 py-3 font-bold">Severidad</th>
-              <th className="px-3 py-3 font-bold">Tipo</th>
-              <th className="px-3 py-3 font-bold">Tiempo</th>
-              <th className="px-3 py-3 font-bold">Origen</th>
-              <th className="px-3 py-3 font-bold">Destino</th>
-              <th className="px-3 py-3 font-bold">Red</th>
-              <th className="px-3 py-3 font-bold">Mensaje / Categoría</th>
-              <th className="px-3 py-3 font-bold">Threat</th>
+            <tr className="border-b border-soc-outline bg-soc-lowest/95 text-[10px] uppercase tracking-[0.12em] text-soc-muted">
+              <th className="px-2.5 py-2 font-bold">Sev</th>
+              <th className="px-2.5 py-2 font-bold">Tipo</th>
+              <th className="px-2.5 py-2 font-bold">Tiempo</th>
+              <th className="px-2.5 py-2 font-bold">Origen</th>
+              <th className="px-2.5 py-2 font-bold">Destino</th>
+              <th className="px-2.5 py-2 font-bold">Red</th>
+              <th className="px-2.5 py-2 font-bold">Mensaje</th>
+              <th className="px-2.5 py-2 font-bold">Threat</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/[0.045]">
@@ -48,10 +64,49 @@ export function EventTable({ events }: EventTableProps) {
                 <td className="px-3 py-8 text-center text-soc-muted" colSpan={8}>Sin eventos que coincidan con los filtros activos</td>
               </tr>
             ) : (
-              events.slice(0, 500).map((event, index) => <EventRow event={event} key={`${event.timestamp ?? event["@timestamp"] ?? "event"}-${index}`} />)
+              visibleEvents.map((event, index) => <EventRow event={event} key={`${event.timestamp ?? event["@timestamp"] ?? "event"}-${start + index}`} />)
             )}
           </tbody>
         </table>
+      </div>
+      <div className="flex flex-col gap-3 border-t border-soc-outline/80 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 text-xs text-soc-muted">
+          <span>Filas</span>
+          <select
+            aria-label="Filas por página"
+            className="rounded border border-soc-outline bg-soc-lowest px-2 py-1.5 font-mono text-xs text-white outline-none transition focus:border-soc-primary focus:ring-2 focus:ring-soc-primary/15"
+            onChange={(event) => {
+              setPageSize(Number(event.target.value));
+              setPage(1);
+            }}
+            value={pageSize}
+          >
+            {pageSizeOptions.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex items-center gap-2 font-mono text-xs text-soc-muted">
+          <button
+            className="rounded border border-soc-outline bg-soc-lowest px-3 py-1.5 transition hover:border-soc-primary/45 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={safePage <= 1}
+            onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
+            type="button"
+          >
+            Anterior
+          </button>
+          <span className="rounded border border-soc-outline bg-soc-lowest px-3 py-1.5 text-white">
+            {safePage} / {totalPages}
+          </span>
+          <button
+            className="rounded border border-soc-outline bg-soc-lowest px-3 py-1.5 transition hover:border-soc-primary/45 hover:text-white disabled:cursor-not-allowed disabled:opacity-45"
+            disabled={safePage >= totalPages || events.length === 0}
+            onClick={() => setPage((currentPage) => Math.min(totalPages, currentPage + 1))}
+            type="button"
+          >
+            Siguiente
+          </button>
+        </div>
       </div>
     </section>
   );
@@ -73,36 +128,36 @@ function EventRow({ event }: { event: SuricataEvent }) {
 
   return (
     <tr className={`transition hover:bg-soc-blue/5 ${eventType === "alert" ? "border-l-2 border-l-soc-danger" : "border-l-2 border-l-transparent"}`}>
-      <td className="px-3 py-3 align-top">
-        <span className={`inline-flex rounded-sm border px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${severityClass(severity)}`}>
+      <td className="px-2.5 py-2 align-top">
+        <span className={`inline-flex rounded-sm border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${severityClass(severity)}`}>
           {getSeverityLabel(severity)} {severity > 0 ? severity : ""}
         </span>
       </td>
-      <td className="px-3 py-3 align-top">
-        <span className={`inline-flex rounded-sm border px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] ${eventTypeClass(eventType)}`}>{eventType || "eve"}</span>
+      <td className="px-2.5 py-2 align-top">
+        <span className={`inline-flex rounded-sm border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${eventTypeClass(eventType)}`}>{eventType || "eve"}</span>
       </td>
-      <td className="px-3 py-3 align-top font-mono text-xs text-soc-muted whitespace-nowrap">{getTimestamp(event)}</td>
-      <td className="px-3 py-3 align-top">
+      <td className="px-2.5 py-2 align-top font-mono text-[11px] text-soc-muted whitespace-nowrap">{getTimestamp(event)}</td>
+      <td className="px-2.5 py-2 align-top">
         <Endpoint ip={getSrcIP(event)} port={srcPort} hostname={event._resolved?.source_hostname} geo={srcGeo} />
       </td>
-      <td className="px-3 py-3 align-top">
+      <td className="px-2.5 py-2 align-top">
         <Endpoint ip={getDstIP(event)} port={dstPort} hostname={event._resolved?.dest_hostname} geo={dstGeo} />
       </td>
-      <td className="px-3 py-3 align-top">
-        <div className="font-mono text-xs font-bold text-white">{proto || "N/A"}</div>
-        <div className="mt-1 text-xs text-soc-muted">{srcPort ?? "-"} -&gt; {dstPort ?? "-"}</div>
+      <td className="px-2.5 py-2 align-top">
+        <div className="font-mono text-[11px] font-bold text-white">{proto || "N/A"}</div>
+        <div className="mt-0.5 text-[11px] text-soc-muted">{srcPort ?? "-"} -&gt; {dstPort ?? "-"}</div>
       </td>
-      <td className="max-w-[360px] px-3 py-3 align-top">
-        <div className="truncate text-sm text-white" title={message}>{message}</div>
-        {category ? <div className="mt-1 truncate text-xs text-soc-muted" title={category}>{category}</div> : null}
+      <td className="max-w-[340px] px-2.5 py-2 align-top">
+        <div className="truncate text-xs text-white" title={message}>{message}</div>
+        {category ? <div className="mt-0.5 truncate text-[11px] text-soc-muted" title={category}>{category}</div> : null}
       </td>
-      <td className="px-3 py-3 align-top">
+      <td className="px-2.5 py-2 align-top">
         {isMalicious ? (
-          <span className="inline-flex rounded-sm border border-soc-danger/35 bg-soc-danger/15 px-2 py-1 text-[10px] font-black uppercase tracking-[0.1em] text-red-200">
+          <span className="inline-flex rounded-sm border border-soc-danger/35 bg-soc-danger/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-red-200">
             MAL {confidence}% / {reports}
           </span>
         ) : (
-          <span className="inline-flex rounded-sm border border-soc-success/25 bg-soc-success/10 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-green-200">Limpia</span>
+          <span className="inline-flex rounded-sm border border-soc-success/25 bg-soc-success/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-green-200">Limpia</span>
         )}
       </td>
     </tr>
@@ -122,12 +177,12 @@ function Endpoint({
 }) {
   return (
     <div className="min-w-0">
-      <div className="font-mono text-xs font-bold text-white">
+      <div className="font-mono text-[11px] font-bold text-white">
         {ip || "-"}{port ? <span className="text-soc-muted">:{port}</span> : null}
       </div>
-      {hostname ? <div className="mt-1 max-w-[210px] truncate text-xs text-soc-muted" title={hostname}>{hostname}</div> : null}
+      {hostname ? <div className="mt-0.5 max-w-[190px] truncate text-[11px] text-soc-muted" title={hostname}>{hostname}</div> : null}
       {geo?.country_code || geo?.country || geo?.city ? (
-        <div className="mt-1 max-w-[210px] truncate text-xs text-soc-muted">
+        <div className="mt-0.5 max-w-[190px] truncate text-[11px] text-soc-muted">
           {geo.country_code ? <span className="mr-1">{getFlagEmoji(geo.country_code)}</span> : null}
           {[geo.city, geo.country].filter(Boolean).join(", ")}
         </div>
