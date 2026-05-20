@@ -52,6 +52,8 @@ Buscar en Elasticsearch:
 - bloqueos asociados.
 - PCAPs asociados.
 
+Para investigaciones con contexto geografico, consultar preferentemente `suricata-enriched-*` para usar `_geo`, `_resolved` y `_threat` persistidos. Evitar reconstruir ubicaciones desde muestras de eventos crudos.
+
 ## Frontend
 
 Agregar ruta:
@@ -63,7 +65,7 @@ Vista detalle:
 - resumen.
 - timeline cronologico.
 - eventos relacionados.
-- mapa si hay GeoIP.
+- mapa si hay GeoIP persistido en `suricata-enriched-*`, separando origen y destino.
 - PCAPs vinculados.
 - comentarios.
 - cambio de estado.

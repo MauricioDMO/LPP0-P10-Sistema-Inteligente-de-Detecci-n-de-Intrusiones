@@ -19,9 +19,16 @@ Elasticsearch:
 
 - health.
 - indices `suricata-*`.
+- indices `suricata-enriched-*`.
 - tamano total.
 - documentos totales.
 - shards yellow/green.
+- ultimo evento enriquecido persistido.
+- porcentaje de eventos enriquecidos con GeoIP.
+- porcentaje de eventos enriquecidos con Threat Intel.
+- errores recientes de escritura al indice enriquecido.
+- estado del template `suricata-enriched-template`.
+- estado de GeoLite2 o fallback `ip-api.com`.
 
 Suricata:
 
@@ -56,6 +63,8 @@ Componentes:
 - ultimos eventos.
 - tamano de indices.
 - tiempo desde ultimo evento.
+- cobertura de enriquecimiento: `_geo`, `_resolved`, `_threat`.
+- alerta si `/geo` no puede usar `suricata-enriched-*`.
 
 ## Seguridad
 
