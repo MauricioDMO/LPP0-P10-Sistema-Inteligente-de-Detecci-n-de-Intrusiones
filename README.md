@@ -9,7 +9,8 @@ El flujo del proyecto es:
 3. Logstash distribuye los eventos hacia Elasticsearch y Redis Pub/Sub.
 4. Elasticsearch indexa los documentos historicos.
 5. El backend FastAPI consulta historico y retransmite eventos realtime por WebSocket.
-6. El frontend Next.js muestra el dashboard en vivo con graficas, mapa, filtros y exportacion CSV.
+6. El backend enriquece eventos con DNS reverso, GeoIP y AbuseIPDB, y puede notificar por Telegram.
+7. El frontend Next.js muestra dashboards en vivo e historicos con graficas, mapa, filtros, rankings y exportacion CSV.
 
 ## Integrantes
 
@@ -74,6 +75,16 @@ curl http://localhost:8000/api/events/health
 Frontend:
 
 - http://localhost:3000
+- Rutas principales: `/live`, `/historical`, `/blocked`, `/geo`, `/rankings`
+
+Endpoints utiles:
+
+```bash
+curl http://localhost:8000/api/events/latest?limit=3
+curl http://localhost:8000/api/events/stats?hours=24
+curl http://localhost:8000/api/analytics/overview?hours=24
+curl "http://localhost:8000/api/analytics/top-ips?hours=24&direction=source&size=5"
+```
 
 ## Levantamiento en produccion (basico)
 

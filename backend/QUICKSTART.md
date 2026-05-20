@@ -94,6 +94,20 @@ Si todo funciona, deberías ver eventos apareciendo en:
 2. Navegador con el frontend Next.js en http://localhost:3000
 3. `docker exec redis redis-cli SUBSCRIBE suricata`
 
+### 5. Verificar histórico y analytics
+
+Después de generar tráfico, Elasticsearch debe contener índices `suricata-*` y el backend debe responder consultas históricas:
+
+```bash
+curl http://localhost:9200/_cat/indices?v
+curl http://localhost:8000/api/events/latest?limit=3
+curl http://localhost:8000/api/events/stats?hours=24
+curl http://localhost:8000/api/analytics/overview?hours=24
+curl "http://localhost:8000/api/analytics/timeline?hours=24&interval=5m"
+curl "http://localhost:8000/api/analytics/top-ips?hours=24&direction=source&size=5"
+curl http://localhost:8000/api/analytics/blocked?hours=24
+```
+
 ## Producción con Docker
 
 ```bash
@@ -143,6 +157,23 @@ ws.send(JSON.stringify({
 }));
 ```
 
+## Enriquecimiento opcional
+
+El backend agrega campos calculados cuando procesa eventos:
+
+- `_resolved`: DNS reverso de IP origen y destino.
+- `_geo`: país, ciudad, coordenadas e ISP con GeoLite2 o fallback `ip-api.com`.
+- `_threat`: reputación AbuseIPDB si `BACKEND_ABUSEIPDB_KEY` está configurada.
+
+Para alertas Telegram, configurar:
+
+```env
+BACKEND_TELEGRAM_BOT_TOKEN=
+BACKEND_TELEGRAM_CHAT_ID=
+```
+
+Se notifican firmas con `BLOQUEO` y eventos marcados como maliciosos por threat intel.
+
 ## Troubleshooting
 
 ### "No se conecta a Redis"
@@ -186,13 +217,10 @@ BACKEND_API_PORT=8001
 
 ## Próximos pasos
 
-1. **Elasticsearch**: Integrar consultas históricas en los endpoints `/api/events/latest` y `/api/events/search`.
-2. **Persistencia**: Guardar eventos en base de datos local.
-3. **Autenticación**: Agregar JWT o API keys.
-4. **Alertas**: Notificaciones por correo o Slack cuando se detectan patrones.
-5. **Frontend**: Dashboard React o Vue.js conectado al WebSocket.
-6. **Tests**: Pruebas unitarias con pytest.
-7. **Métricas**: Prometheus + Grafana para monitoring.
+1. **Autenticación**: Agregar JWT o API keys.
+2. **Tests**: Pruebas unitarias con pytest.
+3. **Métricas**: Prometheus + Grafana para monitoring.
+4. **Hardening**: TLS, usuarios, secretos y restricciones de red.
 
 ## Documentación completa
 

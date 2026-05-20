@@ -109,6 +109,8 @@ Resultado esperado:
 curl http://localhost:8000/
 curl http://localhost:8000/api/events/health
 curl http://localhost:8000/api/events/latest?limit=3
+curl http://localhost:8000/api/analytics/overview?hours=24
+curl "http://localhost:8000/api/analytics/top-ips?hours=24&direction=source&size=5"
 ```
 
 En produccion basica usa `http://127.0.0.1:8000`.
@@ -118,6 +120,7 @@ Resultado esperado:
 - El backend responde HTTP.
 - `/api/events/health` retorna `status: ok`.
 - `/api/events/latest` devuelve eventos si Elasticsearch ya tiene indices.
+- `/api/analytics/overview` y `/api/analytics/top-ips` devuelven agregados si existen eventos en Elasticsearch.
 
 ## 8. Frontend Next.js
 
@@ -138,6 +141,7 @@ Resultado esperado:
 - El dashboard carga.
 - El estado WebSocket cambia a conectado cuando el backend esta disponible.
 - Al generar trafico, aparecen eventos en tabla, graficas y mapa cuando contienen datos geograficos.
+- Las vistas `/historical`, `/blocked`, `/geo` y `/rankings` cargan datos historicos si Elasticsearch tiene eventos.
 
 ## Checklist final
 

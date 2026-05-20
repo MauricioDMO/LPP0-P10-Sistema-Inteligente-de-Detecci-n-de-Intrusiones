@@ -35,7 +35,7 @@ Modo IPS por defecto:
 SURICATA_MODE=ips
 ```
 
-En IPS, el entrypoint agrega reglas `NFQUEUE` en `OUTPUT` para IPv4 e IPv6 y ejecuta Suricata con `-q 0`. Este modo permite que reglas `reject` o `drop` bloqueen trafico.
+En IPS, el entrypoint agrega reglas `NFQUEUE` en `OUTPUT` y `FORWARD` para IPv4 e IPv6 y ejecuta Suricata con `-q 0`. Este modo permite que reglas `reject` o `drop` bloqueen trafico.
 
 Modo IDS opcional:
 
@@ -62,6 +62,7 @@ Reglas actuales:
 - bloqueo de `example.com` por HTTP host.
 - bloqueo/deteccion de YouTube y YouTube Music por TLS, HTTP y DNS.
 - bloqueo/deteccion de sitios adultos por TLS, HTTP y DNS.
+- bloqueo UDP/443 para reducir evasión por QUIC/HTTP3 en sitios adultos.
 
 Los archivos cargados por `suricata/config/suricata.yaml` son:
 
@@ -97,6 +98,6 @@ curl http://localhost:9200/_cat/indices?v
 ## Riesgos
 
 - Requiere privilegios elevados.
-- En modo IPS modifica reglas `iptables`/`ip6tables` mientras el contenedor esta activo.
+- En modo IPS modifica reglas `iptables`/`ip6tables` en `OUTPUT` y `FORWARD` mientras el contenedor esta activo.
 - En modo IDS depende de que `SURICATA_INTERFACE` exista en el host.
 - No tiene healthcheck propio en Compose.

@@ -25,7 +25,8 @@ Trafico del host
 - Elasticsearch guarda eventos en indices diarios `suricata-YYYY.MM.dd`.
 - Backend FastAPI consulta Elasticsearch para historico y escucha Redis para realtime.
 - Redis publica eventos en el canal `suricata` para consumo inmediato.
-- Frontend Next.js muestra eventos en vivo, graficas, mapa, filtros y exportacion CSV.
+- Backend enriquece eventos con DNS reverso, GeoIP y AbuseIPDB, y puede notificar por Telegram.
+- Frontend Next.js muestra vistas en vivo, historicas, bloqueos, rankings y mapa geografico.
 
 ## Diagrama
 
@@ -110,11 +111,12 @@ Redis no tiene volumen persistente porque se usa solo para Pub/Sub.
 ## Riesgos conocidos
 
 - Suricata requiere privilegios elevados y `network_mode: host`.
-- IPS modifica reglas `iptables`/`ip6tables` mientras el contenedor esta activo.
+- IPS modifica reglas `iptables`/`ip6tables` en `OUTPUT` y `FORWARD` mientras el contenedor esta activo.
 - Elasticsearch, Redis, Backend y Frontend no tienen autenticacion en la configuracion actual.
 - Elasticsearch corre en single-node.
 - Redis Pub/Sub no persiste mensajes.
 - `SURICATA_INTERFACE` debe coincidir con interfaces reales cuando se usa modo IDS.
+- `kibana/` existe en el repositorio, pero Kibana no forma parte del stack activo de Compose.
 
 ## Mejoras futuras
 

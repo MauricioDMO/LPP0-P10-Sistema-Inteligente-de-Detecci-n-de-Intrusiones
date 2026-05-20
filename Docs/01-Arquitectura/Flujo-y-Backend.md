@@ -54,14 +54,34 @@ flowchart LR
 - Capa historica: consulta Elasticsearch y devuelve eventos persistidos.
 - Capa en vivo: escucha Redis y retransmite eventos al front.
 - Capa de normalizacion: convierte la salida cruda de Suricata en un formato comun para ambos modos.
+- Capa de enriquecimiento: agrega DNS reverso, GeoIP y reputacion AbuseIPDB.
+- Capa de notificacion: envia Telegram para firmas con `BLOQUEO` o IPs maliciosas.
 - Capa de presentacion: una API REST para historico y un canal en tiempo real para el front.
+
+## Endpoints implementados
+
+- `GET /api/events/health`: salud del backend.
+- `GET /api/events/latest`: eventos recientes desde Elasticsearch.
+- `GET /api/events/stats`: agregados basicos por tipo, severidad e IP origen.
+- `GET /api/events/search`: busqueda full-text sobre `event.original`.
+- `GET /api/analytics/overview`: KPIs historicos.
+- `GET /api/analytics/timeline`: serie temporal historica.
+- `GET /api/analytics/top-ips`: ranking de IPs origen o destino.
+- `GET /api/analytics/top-signatures`: ranking de firmas.
+- `GET /api/analytics/blocked`: resumen de bloqueos IPS.
+- `GET /api/analytics/geo`: agregacion geografica sobre muestra enriquecida.
+- `WS /ws`: eventos en tiempo real desde Redis Pub/Sub.
 
 ## Frontend implementado
 
 - Aplicacion Next.js en `frontend/`.
 - Servicio Compose `frontend`, puerto `3000`.
 - Consume `NEXT_PUBLIC_API_URL` y `NEXT_PUBLIC_WS_URL`.
-- Incluye dashboard realtime con graficas, mapa, filtros, tabla de eventos y exportacion CSV.
+- `/live`: dashboard realtime con graficas, mapa, filtros, tabla de eventos y exportacion CSV.
+- `/historical`: KPIs y timeline historico.
+- `/blocked`: bloqueos IPS.
+- `/geo`: mapa y rankings geograficos.
+- `/rankings`: top IPs y firmas.
 
 ## Resumen corto
 

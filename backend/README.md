@@ -8,6 +8,9 @@ Backend REST + WebSocket para procesar eventos de Suricata en tiempo real y cons
 - **Filtrado dinámico**: Aplica filtros por tipo de evento, severidad, IP, palabras clave.
 - **WebSocket streaming**: Retransmite eventos filtrados en tiempo real.
 - **API REST**: Endpoints para consultar histórico en Elasticsearch.
+- **Analytics histórico**: KPIs, tendencia temporal, rankings, bloqueos y mapa geográfico desde Elasticsearch.
+- **Enriquecimiento**: DNS PTR, GeoIP y reputación IP con AbuseIPDB.
+- **Notificaciones Telegram**: Alertas para bloqueos y destinos maliciosos cuando las credenciales están configuradas.
 - **Configuración flexible**: Variables de entorno `.env`.
 
 ## Instalación
@@ -60,9 +63,24 @@ docker run -p 8000:8000 --network suricata_default suricata-backend
 - `GET /api/events/stats` - Estadísticas agregadas
 - `GET /api/events/search?query=...` - Búsqueda full-text
 
+### Analytics
+
+- `GET /api/analytics/overview?hours=24` - KPIs históricos generales.
+- `GET /api/analytics/timeline?hours=24&interval=5m` - Serie temporal de eventos.
+- `GET /api/analytics/top-ips?hours=24&direction=source&size=10` - Ranking de IPs origen o destino.
+- `GET /api/analytics/top-signatures?hours=24&size=10` - Firmas Suricata más frecuentes.
+- `GET /api/analytics/blocked?hours=24&size=10` - Resumen de reglas de bloqueo.
+- `GET /api/analytics/geo?hours=24&sample_size=200` - Agregación geográfica sobre muestra enriquecida.
+
+Parámetros comunes:
+
+- `hours`: rango histórico entre 1 y 168 horas.
+- `size`: cantidad de resultados para rankings.
+- `sample_size`: cantidad de eventos recientes a enriquecer para geografía.
+
 ### WebSocket
 
-- `GET /ws` - Stream en tiempo real
+- `WS /ws` - Stream en tiempo real
 
 #### Query params en WebSocket:
 
@@ -129,11 +147,20 @@ backend/
 │   ├── __init__.py
 │   ├── main.py                 # Aplicación FastAPI principal
 │   ├── config.py               # Configuración (Settings)
-│   ├── filters.py              # Sistema de filtrado de eventos
+│   ├── filters.py              # Sistema de filtrado de eventos WebSocket
 │   ├── redis_consumer.py       # Consumidor de Redis Pub/Sub
+│   ├── es_client.py            # Cliente Elasticsearch async
+│   ├── es_queries.py           # Consultas REST de eventos
+│   ├── enricher.py             # Orquestador DNS + GeoIP + Threat Intel
+│   ├── resolver.py             # DNS PTR con caché
+│   ├── geoip.py                # GeoLite2 o fallback ip-api.com
+│   ├── threat_intel.py         # AbuseIPDB con caché
+│   ├── notifier.py             # Alertas Telegram
+│   ├── analytics/              # Servicios y queries históricas
 │   ├── routes/
 │   │   ├── __init__.py
-│   │   └── events.py           # Endpoints REST
+│   │   ├── analytics.py        # Endpoints /api/analytics
+│   │   └── events.py           # Endpoints /api/events
 ├── .env.example                # Variables de entorno
 ├── requirements.txt            # Dependencias Python
 ├── Dockerfile                  # Para containerizar
@@ -166,15 +193,34 @@ El backend imprime logs detallados de:
 - Conexiones WebSocket activas
 - Errores y excepciones
 
-## Próximos pasos
+## Enriquecimiento y notificaciones
 
-- [ ] Integración real con Elasticsearch para histórico
-- [ ] Autenticación y autorización
-- [ ] Persistencia de eventos en base de datos
-- [ ] Alertas y notificaciones
-- [ ] Mantener contrato API/WebSocket consumido por el frontend Next.js
-- [ ] Tests automatizados
-- [ ] Métricas y monitoring (Prometheus)
+Cada evento que llega por Redis o se lee desde Elasticsearch puede enriquecerse con:
+
+- `_resolved`: hostname por DNS reverso para IP origen y destino.
+- `_geo`: país, ciudad, coordenadas e ISP desde GeoLite2 o `ip-api.com`.
+- `_threat`: reputación de la IP origen consultada en AbuseIPDB cuando `BACKEND_ABUSEIPDB_KEY` está configurada.
+
+El módulo `notifier.py` envía mensajes Telegram si:
+
+- La firma contiene `BLOQUEO`.
+- `_threat.is_malicious` es `true`.
+
+Variables relacionadas:
+
+```env
+BACKEND_TELEGRAM_BOT_TOKEN=
+BACKEND_TELEGRAM_CHAT_ID=
+BACKEND_ABUSEIPDB_KEY=
+BACKEND_GEOIP_DB_PATH=/data/GeoLite2-City.mmdb
+```
+
+## Pendientes posibles
+
+- Autenticación y autorización.
+- Tests automatizados.
+- Métricas y monitoring (Prometheus/Grafana).
+- Hardening de Elasticsearch, Redis y API para redes no confiables.
 
 ## Troubleshooting
 
@@ -202,10 +248,11 @@ ping -c 4 8.8.8.8
 
 ### Error de conexión a Elasticsearch
 
-Elasticsearch es opcional por ahora; los endpoints REST retornan datos de prueba. Para integrarlo:
+El backend consulta Elasticsearch directamente. Si falla:
 
 1. Verificar `http://localhost:9200/_cluster/health`
-2. Reemplazar placeholders en `app/routes/events.py` con consultas reales
+2. Confirmar que existan índices `suricata-*` con `curl http://localhost:9200/_cat/indices?v`
+3. Revisar `BACKEND_ELASTICSEARCH_HOST`, `BACKEND_ELASTICSEARCH_PORT` y `BACKEND_ELASTICSEARCH_INDEX`
 
 ## Licencia
 

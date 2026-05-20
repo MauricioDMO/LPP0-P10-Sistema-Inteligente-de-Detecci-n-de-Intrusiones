@@ -67,7 +67,9 @@ El frontend Next.js se levanta como servicio `frontend` y consume la API REST/We
 - Suricata en modo IPS por defecto mediante `SURICATA_MODE=ips`.
 - Pipeline historico con indices diarios `suricata-YYYY.MM.dd` en Elasticsearch.
 - Pipeline realtime con Redis Pub/Sub en el canal `suricata`.
-- Dashboard Next.js en `http://localhost:3000`.
+- Dashboard Next.js en `http://localhost:3000` con vistas live, historico, bloqueos, geografia y rankings.
+- Backend con endpoints `/api/events/*`, `/api/analytics/*` y `WS /ws`.
+- Enriquecimiento de eventos con DNS reverso, GeoIP y AbuseIPDB cuando hay configuracion disponible.
 - Seguridad de Elastic y Redis deshabilitada por simplicidad operativa.
 
 ## Nota de seguridad
