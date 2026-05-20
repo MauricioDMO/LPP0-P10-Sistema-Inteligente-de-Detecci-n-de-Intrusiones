@@ -6,8 +6,10 @@ El flujo del proyecto es:
 
 1. Suricata captura trafico de red y genera eventos EVE JSON.
 2. Filebeat ingiere esos eventos.
-3. Elasticsearch indexa los documentos.
-4. Kibana permite exploracion y visualizacion.
+3. Logstash distribuye los eventos hacia Elasticsearch y Redis Pub/Sub.
+4. Elasticsearch indexa los documentos historicos.
+5. El backend FastAPI consulta historico y retransmite eventos realtime por WebSocket.
+6. El frontend Next.js muestra el dashboard en vivo con graficas, mapa, filtros y exportacion CSV.
 
 ## Integrantes
 
@@ -17,8 +19,10 @@ Ver listado completo en [Integrantes.md](Integrantes.md).
 
 - `suricata/`: contenedor, configuracion y reglas de Suricata.
 - `filebeat/`: configuracion de ingestion de logs.
+- `logstash/`: distribucion de eventos hacia Elasticsearch y Redis.
 - `elasticsearch/`: configuracion del nodo Elasticsearch.
-- `kibana/`: configuracion de Kibana.
+- `backend/`: API FastAPI, WebSocket, enriquecimiento y notificaciones.
+- `frontend/`: dashboard Next.js que consume la API REST/WebSocket del backend.
 - `Docs/`: documentacion tecnica y operativa agrupada.
 
 ## Prerequisitos
@@ -39,7 +43,14 @@ Configurar el archivo `.env` (o copiar desde `.env.example`):
 
 ```env
 STACK_VERSION=8.19.14
+SURICATA_MODE=ips
 SURICATA_INTERFACE=wlp0s20f3
+BACKEND_TELEGRAM_BOT_TOKEN=
+BACKEND_TELEGRAM_CHAT_ID=
+BACKEND_ABUSEIPDB_KEY=
+BACKEND_GEOIP_DB_PATH=/data/GeoLite2-City.mmdb
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
 ```
 
 ## Levantamiento en desarrollo
@@ -48,7 +59,6 @@ SURICATA_INTERFACE=wlp0s20f3
 docker compose config
 docker compose build
 docker compose up -d
-docker compose run --rm filebeat filebeat setup -e --strict.perms=false
 ```
 
 Ver estado y logs:
@@ -58,11 +68,12 @@ docker compose ps
 docker compose logs -f suricata
 docker compose logs -f filebeat
 curl http://localhost:9200/_cat/indices?v
+curl http://localhost:8000/api/events/health
 ```
 
-Kibana:
+Frontend:
 
-- http://localhost:5601
+- http://localhost:3000
 
 ## Levantamiento en produccion (basico)
 
@@ -70,7 +81,6 @@ Kibana:
 docker compose -f docker-compose.prod.yml config
 docker compose -f docker-compose.prod.yml build
 docker compose -f docker-compose.prod.yml up -d
-docker compose -f docker-compose.prod.yml run --rm filebeat filebeat setup -e --strict.perms=false
 ```
 
 ## Documentacion
@@ -85,7 +95,8 @@ Documentos agrupados:
   - [Docs/02-Componentes/Suricata.md](Docs/02-Componentes/Suricata.md)
   - [Docs/02-Componentes/Filebeat.md](Docs/02-Componentes/Filebeat.md)
   - [Docs/02-Componentes/Elasticsearch.md](Docs/02-Componentes/Elasticsearch.md)
-  - [Docs/02-Componentes/Kibana.md](Docs/02-Componentes/Kibana.md)
+  - [Docs/02-Componentes/Redis.md](Docs/02-Componentes/Redis.md)
+  - [Docs/02-Componentes/Logstash.md](Docs/02-Componentes/Logstash.md)
 - Operacion:
   - [Docs/03-Operacion/Levantamiento-Desarrollo.md](Docs/03-Operacion/Levantamiento-Desarrollo.md)
   - [Docs/03-Operacion/Levantamiento-Produccion.md](Docs/03-Operacion/Levantamiento-Produccion.md)

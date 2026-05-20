@@ -20,9 +20,6 @@ filebeat.config.modules:
 
 output.logstash:
   hosts: ["logstash:5044"]
-
-setup.kibana:
-  host: "http://kibana:5601"
 ```
 
 Modulo Suricata: `filebeat/modules.d/suricata.yml`
@@ -48,12 +45,6 @@ Buscar conexion con Logstash:
 
 ```bash
 docker logs filebeat | grep -i logstash
-```
-
-Setup de assets en Kibana, si se requiere:
-
-```bash
-docker compose run --rm filebeat filebeat setup -e --strict.perms=false
 ```
 
 ## Riesgos

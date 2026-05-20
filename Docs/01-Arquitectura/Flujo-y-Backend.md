@@ -10,14 +10,16 @@ flowchart LR
     D --> E[Logstash]
     E --> F[Elasticsearch]
     E --> G[Redis Pub/Sub]
-    F --> H[Kibana / consulta historica]
-    G --> I[Backend / dashboard en tiempo real]
+    F --> H[Backend / consulta historica]
+    G --> I[Backend / eventos en tiempo real]
+    H --> K[Frontend Next.js]
+    I --> K
 
     subgraph Persistencia[Si quiero persistencia]
         C1[Leer eve.json] --> D1[Filebeat]
         D1 --> E1[Logstash]
         E1 --> F1[Elasticsearch]
-        F1 --> H1[API de consulta historica o Kibana]
+        F1 --> H1[API de consulta historica]
     end
 
     subgraph BajaLatencia[Si quiero baja latencia]
@@ -25,7 +27,7 @@ flowchart LR
         D2 --> E2[Logstash]
         E2 --> G2[Redis channel suricata]
         G2 --> I2[Backend suscrito en vivo]
-        I2 --> J2[Front en tiempo real]
+        I2 --> J2[Frontend Next.js]
     end
 ```
 
@@ -37,14 +39,14 @@ flowchart LR
 - Guardar los eventos desde Logstash en indices diarios `suricata-YYYY.MM.dd`.
 - Crear un backend que consulte Elasticsearch con filtros por fecha, tipo de evento, IP, puerto o severidad.
 - Exponer endpoints como `GET /events/history`, `GET /events/search` y `GET /events/stats`.
-- En el front, mostrar tablas, graficas y filtros sobre datos ya guardados.
+- En el frontend Next.js, mostrar tablas, graficas y filtros sobre datos ya guardados.
 
 ### Si quiero baja latencia, tengo que hacer esto
 
 - Consumir el canal `suricata` de Redis.
 - Mantener una conexion abierta desde el backend hacia Redis Pub/Sub.
 - Normalizar cada evento apenas llega y reenviarlo al front por WebSocket o Server-Sent Events.
-- En el front, pintar una lista viva de ultimos eventos, alertas destacadas y contadores que cambian en segundos.
+- En el frontend Next.js, pintar una lista viva de ultimos eventos, alertas destacadas y contadores que cambian en segundos.
 - Aceptar que esto no persiste mensajes: si no hay suscriptor activo, el evento se pierde para Redis.
 
 ## Como se piensa el backend
@@ -54,13 +56,12 @@ flowchart LR
 - Capa de normalizacion: convierte la salida cruda de Suricata en un formato comun para ambos modos.
 - Capa de presentacion: una API REST para historico y un canal en tiempo real para el front.
 
-## Idea de front
+## Frontend implementado
 
-- Panel izquierdo: filtros y estado general.
-- Panel central: tabla de eventos recientes o historicos.
-- Panel derecho: tarjetas con alertas, conteos, ips mas activas y linea temporal.
-- Modo historico: usa paginacion, busqueda y graficas agregadas.
-- Modo tiempo real: usa feed continuo, resaltado de nuevos eventos y auto-refresh visual.
+- Aplicacion Next.js en `frontend/`.
+- Servicio Compose `frontend`, puerto `3000`.
+- Consume `NEXT_PUBLIC_API_URL` y `NEXT_PUBLIC_WS_URL`.
+- Incluye dashboard realtime con graficas, mapa, filtros, tabla de eventos y exportacion CSV.
 
 ## Resumen corto
 

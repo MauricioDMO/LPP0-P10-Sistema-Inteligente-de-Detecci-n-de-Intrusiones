@@ -134,7 +134,6 @@ backend/
 │   ├── routes/
 │   │   ├── __init__.py
 │   │   └── events.py           # Endpoints REST
-│   └── static/                 # Demos HTML servidos por FastAPI
 ├── .env.example                # Variables de entorno
 ├── requirements.txt            # Dependencias Python
 ├── Dockerfile                  # Para containerizar
@@ -154,10 +153,9 @@ python test_websocket.py
 
 Abre http://localhost:8000/docs en tu navegador (Swagger UI).
 
-### Demos HTML
+### Frontend
 
-- Frontend realtime principal: http://localhost:8000/frontend
-- Demo historico/realtime: http://localhost:8000/static/demo_trafico_historial_realtime.html
+El dashboard se mantiene como aplicacion Next.js independiente en `../frontend` y consume la API REST/WebSocket del backend.
 
 ### Logs
 
@@ -174,7 +172,7 @@ El backend imprime logs detallados de:
 - [ ] Autenticación y autorización
 - [ ] Persistencia de eventos en base de datos
 - [ ] Alertas y notificaciones
-- [ ] Dashboard frontend conectado al WebSocket
+- [ ] Mantener contrato API/WebSocket consumido por el frontend Next.js
 - [ ] Tests automatizados
 - [ ] Métricas y monitoring (Prometheus)
 

@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Guia corta para diagnosticar fallas comunes del stack. Revisa el flujo en orden: Docker, Suricata, Filebeat, Logstash, Elasticsearch, Redis y Kibana.
+Guia corta para diagnosticar fallas comunes del stack. Revisa el flujo en orden: Docker, Suricata, Filebeat, Logstash, Elasticsearch, Redis, Backend y Frontend.
 
 ## Diagnostico rapido
 
@@ -10,9 +10,12 @@ docker compose logs --tail=100 suricata
 docker compose logs --tail=100 filebeat
 docker compose logs --tail=100 logstash
 docker compose logs --tail=100 elasticsearch
-docker compose logs --tail=100 kibana
+docker compose logs --tail=100 backend
+docker compose logs --tail=100 frontend
 docker exec redis redis-cli PING
 curl http://localhost:9200/_cluster/health
+curl http://localhost:8000/api/events/health
+curl http://localhost:3000
 curl http://localhost:9200/_cat/indices?v
 ```
 
@@ -80,7 +83,7 @@ Sintomas:
 
 - Elasticsearch se reinicia.
 - Logstash no logra conectar.
-- Kibana no abre.
+- Backend no responde.
 
 Causa comun en Linux:
 
@@ -153,7 +156,6 @@ Acciones:
 
 ```bash
 docker compose restart filebeat
-docker compose run --rm filebeat filebeat setup -e --strict.perms=false
 ```
 
 ## 6. No llegan eventos a Redis
@@ -188,7 +190,7 @@ Notas:
 - Pub/Sub solo entrega mensajes a suscriptores activos.
 - Si no hay suscriptor al momento de publicar, Redis no guarda el evento.
 
-## 7. No aparecen eventos en Kibana
+## 7. No aparecen eventos en Elasticsearch
 
 Validaciones:
 
@@ -199,35 +201,57 @@ docker compose logs --tail=100 filebeat
 docker compose logs --tail=100 logstash
 ```
 
-En Kibana:
-
-- Verifica que exista Data View `suricata-*`.
-- Amplia la ventana temporal.
-- Prueba filtros como `event.module: suricata`.
-
 Causas comunes:
 
 - No se ha generado trafico reciente.
 - No existen indices `suricata-*`.
-- Data View mal creado.
 - Logstash no esta publicando a Elasticsearch.
 
 ## 8. Puertos expuestos sin autenticacion
 
 Riesgo:
 
-- Elasticsearch, Kibana y Redis no tienen autenticacion en la configuracion actual.
+- Elasticsearch, Redis y Backend no tienen autenticacion en la configuracion actual.
 
 Mitigacion minima:
 
 - En desarrollo, no exponer el host a redes no confiables.
 - En produccion basica, usar `docker-compose.prod.yml`.
 - Restringir con firewall.
-- Usar reverse proxy autenticado para Kibana.
 - Habilitar seguridad de Elastic antes de manejar datos reales.
 - Agregar autenticacion a Redis si queda accesible fuera del host.
 
-## 9. Limpieza completa
+## 9. Frontend no carga o no recibe eventos
+
+Sintomas:
+
+- `http://localhost:3000` no abre.
+- El dashboard abre, pero queda desconectado.
+- No aparecen eventos aunque Redis y backend reciben datos.
+
+Validaciones:
+
+```bash
+docker compose logs --tail=100 frontend
+curl http://localhost:3000
+curl http://localhost:8000/api/events/health
+```
+
+Causas comunes:
+
+- El servicio `frontend` no esta levantado.
+- `NEXT_PUBLIC_API_URL` o `NEXT_PUBLIC_WS_URL` apuntan a una URL incorrecta.
+- El backend no esta disponible en `8000`.
+- El navegador no puede abrir el WebSocket configurado.
+
+Acciones:
+
+```bash
+docker compose up -d --build frontend
+docker compose restart frontend
+```
+
+## 10. Limpieza completa
 
 Si necesitas reiniciar desde cero y perder datos locales:
 

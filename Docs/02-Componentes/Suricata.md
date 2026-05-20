@@ -13,10 +13,12 @@ Suricata es el motor IDS/IPS del proyecto. Inspecciona trafico de red, aplica re
 
 Archivos principales:
 
-- `suricata/Dockerfile`: instala Suricata, `iptables`, `iproute2`, `ping` y `curl` sobre Debian 12.
+- `suricata/Dockerfile`: parte de `jasonish/suricata:latest` e instala `iptables-nft` para modo IPS con NFQUEUE.
 - `suricata/entrypoint.sh`: decide si arranca en modo `ips` o `ids`.
 - `suricata/config/suricata.yaml`: configuracion principal.
-- `suricata/config/rules/suricata.rules`: reglas locales.
+- `suricata/config/rules/suricata.rules`: reglas locales base.
+- `suricata/config/rules/youtube-block.rules`: reglas de bloqueo/deteccion para YouTube.
+- `suricata/config/rules/adult-block.rules`: reglas de bloqueo/deteccion para sitios adultos.
 
 Compose ejecuta Suricata con:
 
@@ -50,7 +52,7 @@ SURICATA_INTERFACE=wlp0s20f3,virbr0
 
 ## Reglas locales
 
-Archivo: `suricata/config/rules/suricata.rules`
+Directorio: `suricata/config/rules/`
 
 Reglas actuales:
 
@@ -58,6 +60,17 @@ Reglas actuales:
 - bloqueo de `example.com` por TLS SNI.
 - bloqueo de `example.com` por DNS.
 - bloqueo de `example.com` por HTTP host.
+- bloqueo/deteccion de YouTube y YouTube Music por TLS, HTTP y DNS.
+- bloqueo/deteccion de sitios adultos por TLS, HTTP y DNS.
+
+Los archivos cargados por `suricata/config/suricata.yaml` son:
+
+```yaml
+rule-files:
+  - suricata.rules
+  - youtube-block.rules
+  - adult-block.rules
+```
 
 ## Validacion rapida
 

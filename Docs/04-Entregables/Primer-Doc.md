@@ -1,5 +1,7 @@
 # Sistema de monitoreo y análisis de tráfico de red
 
+> Documento historico de la primera entrega. Describe el alcance de esa fase y puede mencionar componentes que ya no forman parte del stack activo actual.
+
 - [Sistema de monitoreo y análisis de tráfico de red](#sistema-de-monitoreo-y-análisis-de-tráfico-de-red)
   - [1. Descripción general del proyecto](#1-descripción-general-del-proyecto)
   - [2. Objetivo de la fase desarrollada](#2-objetivo-de-la-fase-desarrollada)

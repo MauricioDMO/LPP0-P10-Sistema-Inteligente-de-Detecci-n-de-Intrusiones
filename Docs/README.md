@@ -1,6 +1,6 @@
 # Documentacion del Proyecto Suricata
 
-Este directorio contiene la documentacion tecnica y operativa del stack de monitoreo de red basado en Suricata, Filebeat, Logstash, Redis, Elasticsearch y Kibana.
+Este directorio contiene la documentacion tecnica y operativa del stack de monitoreo de red basado en Suricata, Filebeat, Logstash, Redis, Elasticsearch, FastAPI y Next.js.
 
 El objetivo es que cualquier integrante pueda entender la arquitectura, levantar el sistema y validar el flujo completo sin revisar todos los archivos del repositorio.
 
@@ -40,9 +40,11 @@ Trafico de red
   -> /var/log/suricata/eve.json
   -> Filebeat
   -> Logstash
-  -> Elasticsearch -> Kibana
-  -> Redis Pub/Sub -> consumidores realtime
+  -> Elasticsearch
+  -> Redis Pub/Sub -> Backend FastAPI -> Frontend Next.js
 ```
+
+El frontend Next.js se levanta como servicio `frontend` y consume la API REST/WebSocket del backend.
 
 ## Documentos
 
@@ -53,7 +55,6 @@ Trafico de red
 - [Logstash](02-Componentes/Logstash.md): distribucion a Elasticsearch y Redis.
 - [Redis](02-Componentes/Redis.md): canal Pub/Sub para eventos en tiempo real.
 - [Elasticsearch](02-Componentes/Elasticsearch.md): indexacion y consulta historica.
-- [Kibana](02-Componentes/Kibana.md): exploracion visual de eventos.
 - [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md): arranque local/laboratorio.
 - [Levantamiento en produccion](03-Operacion/Levantamiento-Produccion.md): arranque con puertos restringidos a localhost.
 - [Inicio y verificacion](03-Operacion/Inicio-y-Verificacion.md): checklist end-to-end.
@@ -66,6 +67,7 @@ Trafico de red
 - Suricata en modo IPS por defecto mediante `SURICATA_MODE=ips`.
 - Pipeline historico con indices diarios `suricata-YYYY.MM.dd` en Elasticsearch.
 - Pipeline realtime con Redis Pub/Sub en el canal `suricata`.
+- Dashboard Next.js en `http://localhost:3000`.
 - Seguridad de Elastic y Redis deshabilitada por simplicidad operativa.
 
 ## Nota de seguridad

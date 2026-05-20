@@ -26,7 +26,7 @@ Suricata (IPS) -> NFQUEUE -> iptables OUTPUT
 | `backend/app/threat_intel.py` | AbuseIPDB check, 24h cache |
 | `backend/app/enricher.py` | Orchestrates resolver + geoip + threat_intel |
 | `backend/app/notifier.py` | Telegram alerts for adult blocks & malicious IPs |
-| `backend/app/static/frontend_realtime_fix.html` | Live dashboard with charts, map, threat badges |
+| `frontend/` | Next.js live dashboard with charts, map, threat badges |
 
 ## Key Modifications
 - **Kibana excluded** from both compose files.
@@ -46,7 +46,6 @@ Suricata (IPS) -> NFQUEUE -> iptables OUTPUT
 | `GET /api/events/stats` | Aggregations by type, severity, top IPs |
 | `GET /api/events/search` | Full-text search on `event.original` |
 | `WS /ws` | Real-time streaming from Redis |
-| `GET /frontend` | Live dashboard (Chart.js + Leaflet + threat badges) |
 | `GET /` | API root with status info |
 
 ## Commands
@@ -70,7 +69,7 @@ Suricata (IPS) -> NFQUEUE -> iptables OUTPUT
   curl "http://localhost:8000/api/events/search?query=BLOQUEO"
   ```
 - Redis pub/sub check: `sg docker -c "docker exec redis redis-cli SUBSCRIBE suricata"`.
-- Frontend: `http://localhost:8000/frontend`.
+- Frontend: `http://localhost:3000`.
 
 ## Runtime Notes
 - `.env` must have `SURICATA_MODE=ips` and `SURICATA_INTERFACE=enp0s3`.

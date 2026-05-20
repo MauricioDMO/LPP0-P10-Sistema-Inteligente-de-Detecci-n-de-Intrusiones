@@ -35,7 +35,7 @@ El backend estará disponible en:
 - API REST: http://localhost:8000
 - Documentación Swagger: http://localhost:8000/docs
 - WebSocket: ws://localhost:8000/ws
-- Frontend demo: http://localhost:8000/frontend_realtime.html (después de servir)
+- Frontend Next.js: http://localhost:3000
 
 ## Verificar que todo funciona
 
@@ -66,15 +66,7 @@ Opción A: Usar cliente Python de prueba:
 python test_websocket.py
 ```
 
-Opción B: Usar cliente JavaScript del navegador:
-
-```bash
-# En carpeta /backend, servir HTTP
-python -m http.server 9000
-
-# Abrir en navegador
-http://localhost:9000/frontend_realtime.html
-```
+Opción B: Usar el frontend Next.js independiente en `../frontend`.
 
 ### 3. Verificar que Redis está activo
 
@@ -99,7 +91,7 @@ curl http://example.com -I
 Si todo funciona, deberías ver eventos apareciendo en:
 
 1. Terminal de `test_websocket.py`
-2. Navegador con `frontend_realtime.html`
+2. Navegador con el frontend Next.js en http://localhost:3000
 3. `docker exec redis redis-cli SUBSCRIBE suricata`
 
 ## Producción con Docker

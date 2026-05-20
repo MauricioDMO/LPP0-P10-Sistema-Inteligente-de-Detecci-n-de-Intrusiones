@@ -2,7 +2,7 @@
 
 El proyecto implementa un sistema de monitoreo de red con dos salidas complementarias:
 
-- Historica: eventos almacenados en Elasticsearch para busqueda y visualizacion en Kibana.
+- Historica: eventos almacenados en Elasticsearch para busqueda desde el backend.
 - Realtime: eventos publicados en Redis Pub/Sub para consumidores en vivo.
 
 ## Flujo principal
@@ -13,8 +13,8 @@ Trafico del host
   -> eve.json
   -> Filebeat
   -> Logstash
-  -> Elasticsearch -> Kibana
-  -> Redis canal suricata -> backend/dashboard realtime
+  -> Elasticsearch
+  -> Redis canal suricata -> backend FastAPI -> frontend Next.js
 ```
 
 ## Componentes
@@ -23,8 +23,9 @@ Trafico del host
 - Filebeat lee `eve.json` con el modulo oficial de Suricata y envia los eventos a Logstash por Beats (`logstash:5044`).
 - Logstash recibe los eventos y los publica en dos destinos: Elasticsearch y Redis.
 - Elasticsearch guarda eventos en indices diarios `suricata-YYYY.MM.dd`.
-- Kibana consulta Elasticsearch para exploracion historica.
+- Backend FastAPI consulta Elasticsearch para historico y escucha Redis para realtime.
 - Redis publica eventos en el canal `suricata` para consumo inmediato.
+- Frontend Next.js muestra eventos en vivo, graficas, mapa, filtros y exportacion CSV.
 
 ## Diagrama
 
@@ -36,8 +37,9 @@ flowchart TD
     D --> E[Logstash]
     E --> F[Elasticsearch]
     E --> G[Redis Pub/Sub canal suricata]
-    F --> H[Kibana]
-    G --> I[Backends o dashboards realtime]
+    F --> H[Backend FastAPI]
+    G --> H
+    H --> I[Frontend Next.js]
 ```
 
 ## Decisiones tecnicas
@@ -81,14 +83,16 @@ Elasticsearch corre como nodo unico para reducir complejidad. Esto es suficiente
 Desarrollo:
 
 - Elasticsearch: `localhost:9200`
-- Kibana: `localhost:5601`
 - Redis: `localhost:6379`
+- Backend: `localhost:8000`
+- Frontend: `localhost:3000`
 
 Produccion basica:
 
 - Elasticsearch: `127.0.0.1:9200`
-- Kibana: `127.0.0.1:5601`
 - Redis: `127.0.0.1:6379`
+- Backend: `127.0.0.1:8000`
+- Frontend: `127.0.0.1:3000`
 
 Logstash escucha Beats dentro de la red Docker en el puerto `5044`; no se publica al host.
 
@@ -99,13 +103,15 @@ Logstash escucha Beats dentro de la red Docker en el puerto `5044`; no se public
 - `esdata`: datos indexados de Elasticsearch.
 - `eslogs`: logs internos de Elasticsearch.
 
+El frontend no define volumen persistente; se construye desde `frontend/` y se expone en el puerto `3000`.
+
 Redis no tiene volumen persistente porque se usa solo para Pub/Sub.
 
 ## Riesgos conocidos
 
 - Suricata requiere privilegios elevados y `network_mode: host`.
 - IPS modifica reglas `iptables`/`ip6tables` mientras el contenedor esta activo.
-- Elasticsearch, Kibana y Redis no tienen autenticacion en la configuracion actual.
+- Elasticsearch, Redis, Backend y Frontend no tienen autenticacion en la configuracion actual.
 - Elasticsearch corre en single-node.
 - Redis Pub/Sub no persiste mensajes.
 - `SURICATA_INTERFACE` debe coincidir con interfaces reales cuando se usa modo IDS.
@@ -116,4 +122,4 @@ Redis no tiene volumen persistente porque se usa solo para Pub/Sub.
 - Agregar autenticacion a Redis o restringirlo completamente a red interna.
 - Definir politicas de retencion y backup para Elasticsearch.
 - Agregar monitoreo de salud y recursos.
-- Enriquecer eventos en Logstash, por ejemplo GeoIP o normalizacion de campos.
+- Agregar autenticacion y control de acceso al dashboard.

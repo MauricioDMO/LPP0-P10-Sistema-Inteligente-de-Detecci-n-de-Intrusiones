@@ -29,6 +29,8 @@ Revisar `.env`:
 STACK_VERSION=8.19.14
 SURICATA_MODE=ips
 SURICATA_INTERFACE=wlp0s20f3
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
 ```
 
 Notas:
@@ -46,43 +48,29 @@ docker compose up -d --build
 Servicios levantados:
 
 - `elasticsearch`
-- `kibana`
 - `suricata`
 - `redis`
 - `logstash`
 - `filebeat`
+- `backend`
+- `frontend`
 
 ## 4. Verificar arranque
 
 ```bash
 docker compose ps
 curl http://localhost:9200
+curl http://localhost:8000/api/events/health
 docker exec redis redis-cli PING
 ```
 
-Kibana queda disponible en:
+Frontend disponible en:
 
 ```text
-http://localhost:5601
+http://localhost:3000
 ```
 
-## 5. Configurar Kibana
-
-En el primer uso:
-
-1. Abrir `http://localhost:5601`.
-2. Ir a `Stack Management` > `Data Views`.
-3. Crear un Data View con patron `suricata-*`.
-4. Seleccionar `@timestamp` como campo de tiempo.
-5. Ir a `Discover` y elegir el Data View creado.
-
-Si necesitas cargar assets de Filebeat:
-
-```bash
-docker compose run --rm filebeat filebeat setup -e --strict.perms=false
-```
-
-## 6. Generar trafico de prueba
+## 5. Generar trafico de prueba
 
 ```bash
 ping -c 4 8.8.8.8
@@ -94,6 +82,7 @@ Luego revisa:
 
 ```bash
 curl http://localhost:9200/_cat/indices?v
+curl http://localhost:8000/api/events/latest?limit=3
 ```
 
 Para validar realtime:
@@ -104,7 +93,9 @@ docker exec redis redis-cli SUBSCRIBE suricata
 
 Genera trafico desde otra terminal y deberias ver eventos publicados.
 
-## 7. Apagar
+El dashboard Next.js tambien debe actualizarse en `http://localhost:3000` si el backend esta conectado por WebSocket.
+
+## 6. Apagar
 
 Apagado normal:
 

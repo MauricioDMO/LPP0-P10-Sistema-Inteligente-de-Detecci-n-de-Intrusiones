@@ -7,7 +7,7 @@ Elasticsearch almacena e indexa los eventos de Suricata para busqueda historica.
 - Recibe eventos desde Logstash.
 - Crea indices diarios `suricata-YYYY.MM.dd`.
 - Expone API REST en el puerto `9200`.
-- Sirve datos a Kibana.
+- Sirve datos historicos al backend FastAPI.
 
 ## Configuracion real
 

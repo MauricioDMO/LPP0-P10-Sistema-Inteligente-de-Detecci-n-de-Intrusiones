@@ -103,32 +103,41 @@ Resultado esperado:
 - Filebeat lee `/var/log/suricata/eve.json`.
 - Filebeat logra publicar eventos en Logstash.
 
-## 7. Kibana
+## 7. Backend
+
+```bash
+curl http://localhost:8000/
+curl http://localhost:8000/api/events/health
+curl http://localhost:8000/api/events/latest?limit=3
+```
+
+En produccion basica usa `http://127.0.0.1:8000`.
+
+Resultado esperado:
+
+- El backend responde HTTP.
+- `/api/events/health` retorna `status: ok`.
+- `/api/events/latest` devuelve eventos si Elasticsearch ya tiene indices.
+
+## 8. Frontend Next.js
 
 Abrir:
 
 ```text
-http://localhost:5601
+http://localhost:3000
 ```
 
 En produccion basica:
 
 ```text
-http://127.0.0.1:5601
+http://127.0.0.1:3000
 ```
 
-Validar:
+Resultado esperado:
 
-- Existe Data View `suricata-*`.
-- `Discover` muestra eventos recientes.
-- La ventana temporal incluye el momento de las pruebas.
-
-Filtros utiles:
-
-```text
-event.module: suricata
-suricata.eve.event_type: alert
-```
+- El dashboard carga.
+- El estado WebSocket cambia a conectado cuando el backend esta disponible.
+- Al generar trafico, aparecen eventos en tabla, graficas y mapa cuando contienen datos geograficos.
 
 ## Checklist final
 
@@ -139,5 +148,6 @@ suricata.eve.event_type: alert
 - [ ] Suricata sigue corriendo despues de generar trafico.
 - [ ] Filebeat envia eventos a Logstash.
 - [ ] Existen indices `suricata-*`.
-- [ ] Kibana muestra eventos en Discover.
 - [ ] Redis publica eventos en el canal `suricata` si hay suscriptor.
+- [ ] Backend responde en `8000`.
+- [ ] Frontend Next.js carga en `3000`.
