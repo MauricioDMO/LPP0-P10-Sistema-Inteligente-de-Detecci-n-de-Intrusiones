@@ -77,15 +77,16 @@ export type BlockedAnalytics = {
 export type HistoricalGeoPoint = {
   lat: number;
   lon: number;
-  country?: string;
-  city?: string;
-  isp?: string;
+  country?: string | null;
+  city?: string | null;
+  isp?: string | null;
   count: number;
 };
 
 export type GeoAnalytics = {
   hours: number;
-  sample_size: number;
+  total_events: number;
+  geolocated_observations: number;
   countries: Array<{ country: string; count: number }>;
   cities: Array<{ city: string; count: number }>;
   isps: Array<{ isp: string; count: number }>;

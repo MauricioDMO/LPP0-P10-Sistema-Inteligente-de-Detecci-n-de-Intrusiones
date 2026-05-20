@@ -10,6 +10,11 @@ import type { CircleMarker, Map as LeafletMap } from "leaflet";
 
 type LeafletModule = typeof import("leaflet");
 
+const WORLD_BOUNDS: [[number, number], [number, number]] = [
+  [-85, -180],
+  [85, 180],
+];
+
 type GeoMapProps = {
   events?: SuricataEvent[];
   resetKey?: number;
@@ -36,19 +41,31 @@ export function GeoMap({ events = [], resetKey = 0, points = [], mode = "live", 
       if (cancelled || !mapElementRef.current) return;
 
       leafletRef.current = leaflet;
+      const isHeatmap = mode === "heatmap";
       mapRef.current = leaflet
         .map(mapElementRef.current, {
           attributionControl: false,
-          boxZoom: false,
-          doubleClickZoom: false,
-          dragging: false,
-          keyboard: false,
-          scrollWheelZoom: false,
-          touchZoom: false,
-          zoomControl: false,
+          boxZoom: isHeatmap,
+          doubleClickZoom: isHeatmap,
+          dragging: true,
+          keyboard: isHeatmap,
+          maxBounds: WORLD_BOUNDS,
+          maxBoundsViscosity: 1,
+          maxZoom: isHeatmap ? 6 : 2,
+          minZoom: 2,
+          scrollWheelZoom: isHeatmap,
+          touchZoom: isHeatmap,
+          zoomControl: isHeatmap,
         })
         .setView([15, -10], 2);
-      leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 2, minZoom: 2 }).addTo(mapRef.current);
+      leaflet
+        .tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+          bounds: WORLD_BOUNDS,
+          maxZoom: isHeatmap ? 6 : 2,
+          minZoom: 2,
+          noWrap: true,
+        })
+        .addTo(mapRef.current);
       setMapReady(true);
     }
 
@@ -60,7 +77,7 @@ export function GeoMap({ events = [], resetKey = 0, points = [], mode = "live", 
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [mode]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -72,6 +89,7 @@ export function GeoMap({ events = [], resetKey = 0, points = [], mode = "live", 
 
     if (mode === "heatmap") {
       for (const point of points) addHeatMarker(leaflet, map, markersRef.current, point);
+      fitHeatmapBounds(leaflet, map, points);
     } else {
       const seenLocationKeys = new Set<string>();
       for (const event of events) {
@@ -88,7 +106,7 @@ export function GeoMap({ events = [], resetKey = 0, points = [], mode = "live", 
         <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-soc-muted">{title}</h2>
         <span className="font-mono text-xs text-soc-muted">{subtitle}</span>
       </div>
-      <div className="h-80 overflow-hidden rounded border border-soc-outline bg-soc-lowest brightness-75 contrast-110 saturate-75 md:h-93 [&_.leaflet-tile-pane]:opacity-60" ref={mapElementRef} />
+      <div className="h-80 overflow-hidden rounded border border-soc-outline bg-soc-lowest contrast-125 saturate-75 md:h-93 [&_.leaflet-tile-pane]:opacity-70" ref={mapElementRef} />
     </section>
   );
 }
@@ -117,6 +135,27 @@ function addHeatMarker(leaflet: LeafletModule, map: LeafletMap, markers: CircleM
 
   marker.bindPopup(popupContent);
   markers.push(marker);
+}
+
+function fitHeatmapBounds(leaflet: LeafletModule, map: LeafletMap, points: HistoricalGeoPoint[]) {
+  const coordinates = points
+    .filter((point) => typeof point.lat === "number" && typeof point.lon === "number")
+    .map((point) => [point.lat, point.lon] as [number, number]);
+
+  if (coordinates.length === 0) {
+    map.setView([15, -10], 2);
+    return;
+  }
+
+  if (coordinates.length === 1) {
+    map.setView(coordinates[0], 4);
+    return;
+  }
+
+  map.fitBounds(leaflet.latLngBounds(coordinates), {
+    maxZoom: 5,
+    padding: [24, 24],
+  });
 }
 
 function addMarker(

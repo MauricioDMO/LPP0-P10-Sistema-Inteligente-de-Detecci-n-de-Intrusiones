@@ -10,7 +10,7 @@ type HistoricalGeoPanelProps = {
 };
 
 export function HistoricalGeoPanel({ hours }: HistoricalGeoPanelProps) {
-  const { data, loading, error } = useAnalytics<GeoAnalytics>(`/api/analytics/geo?hours=${hours}&sample_size=200`);
+  const { data, loading, error } = useAnalytics<GeoAnalytics>(`/api/analytics/geo?hours=${hours}`);
   const points = data?.points ?? [];
 
   return (
@@ -18,7 +18,7 @@ export function HistoricalGeoPanel({ hours }: HistoricalGeoPanelProps) {
       <div>
         <AnalyticsState loading={loading} error={error} empty={points.length === 0} />
         {!loading && !error && points.length > 0 ? (
-          <GeoMap mode="heatmap" points={points} title="Mapa de calor histórico" subtitle={`${points.length} puntos / muestra ${data?.sample_size ?? 0}`} />
+          <GeoMap mode="heatmap" points={points} title="Mapa de calor histórico" subtitle={`${points.length} zonas / ${data?.geolocated_observations ?? 0} observaciones / ${data?.total_events ?? 0} eventos`} />
         ) : null}
       </div>
       <AnalyticsShell eyebrow="Geo rankings" title="Países, ciudades e ISPs">
