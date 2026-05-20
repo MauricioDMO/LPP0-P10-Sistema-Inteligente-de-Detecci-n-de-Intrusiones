@@ -5,9 +5,6 @@ filebeat.config.modules:
 output.logstash:
   hosts: ["logstash:5044"]
 
-setup.kibana:
-  host: "http://kibana:5601"
-
 logging.level: info
 logging.to_files: false
 logging.to_stderr: true
