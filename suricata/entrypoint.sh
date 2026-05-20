@@ -6,27 +6,51 @@ MODE="${SURICATA_MODE:-ips}"
 queue_traffic() {
   local iptables_cmd="$1"
   local chain="$2"
-  if "$iptables_cmd" -C "$chain" -j NFQUEUE --queue-num 0 >/dev/null 2>&1; then
+  if "$iptables_cmd" -C "$chain" -j NFQUEUE --queue-num 0 --queue-bypass >/dev/null 2>&1; then
     return 0
   fi
-  "$iptables_cmd" -I "$chain" -j NFQUEUE --queue-num 0
+  "$iptables_cmd" -I "$chain" -j NFQUEUE --queue-num 0 --queue-bypass
 }
 
 cleanup_queue_rules() {
-  iptables -D OUTPUT -j NFQUEUE --queue-num 0 >/dev/null 2>&1 || true
-  ip6tables -D OUTPUT -j NFQUEUE --queue-num 0 >/dev/null 2>&1 || true
+  for iptables_cmd in iptables ip6tables; do
+    for chain in OUTPUT FORWARD; do
+      while "$iptables_cmd" -D "$chain" -j NFQUEUE --queue-num 0 --queue-bypass >/dev/null 2>&1; do :; done
+      while "$iptables_cmd" -D "$chain" -j NFQUEUE --queue-num 0 >/dev/null 2>&1; do :; done
+    done
+  done
+
+}
+
+stop_suricata() {
+  if [[ -n "${SURICATA_PID:-}" ]] && kill -0 "$SURICATA_PID" >/dev/null 2>&1; then
+    kill -TERM "$SURICATA_PID" >/dev/null 2>&1 || true
+    wait "$SURICATA_PID" >/dev/null 2>&1 || true
+  fi
+
+  cleanup_queue_rules
 }
 
 if [[ "$MODE" == "ips" ]]; then
-  trap cleanup_queue_rules EXIT
+  trap stop_suricata EXIT INT TERM
+
+  cleanup_queue_rules
 
   queue_traffic iptables OUTPUT
+  queue_traffic iptables FORWARD
   queue_traffic ip6tables OUTPUT
+  queue_traffic ip6tables FORWARD
 
-  exec suricata \
+  suricata \
     -c /etc/suricata/suricata.yaml \
     -q 0 \
-    -l /var/log/suricata
+    -l /var/log/suricata &
+  SURICATA_PID="$!"
+  set +e
+  wait "$SURICATA_PID"
+  status="$?"
+  set -e
+  exit "$status"
 fi
 
 if [[ "$MODE" != "ids" ]]; then
