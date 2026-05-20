@@ -4,6 +4,12 @@ filebeat.config.modules:
 
 output.logstash:
   hosts: ["logstash:5044"]
+  bulk_max_size: 128
+
+queue.mem:
+  events: 1024
+  flush.min_events: 128
+  flush.timeout: 0s
 
 logging.level: info
 logging.to_files: false
