@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import { AppNav } from "@/shared/components/navigation/AppNav";
 import "./globals.css";
 
@@ -31,6 +32,16 @@ export default function RootLayout({
       <body className="min-h-full lg:flex">
         <AppNav />
         <div className="min-w-0 flex-1">{children}</div>
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            classNames: {
+              toast: "border border-soc-outline/80 bg-soc-lowest text-white shadow-[0_18px_50px_rgba(0,0,0,0.35)]",
+              description: "text-soc-muted",
+              success: "border-soc-success/35",
+            },
+          }}
+        />
       </body>
     </html>
   );

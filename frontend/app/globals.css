@@ -83,6 +83,15 @@ select {
   font: inherit;
 }
 
+select {
+  color-scheme: dark;
+}
+
+option {
+  background: var(--surface-container-lowest);
+  color: var(--foreground);
+}
+
 ::selection {
   background: rgba(77, 142, 255, 0.36);
 }
