@@ -19,11 +19,27 @@ type EventChartsProps = {
   events: SuricataEvent[];
 };
 
-const chartColors = ["#ef4444", "#4d8eff", "#adc6ff", "#df7412", "#f59e0b", "#4ade80", "#8c909f"];
+const eventTypeOrder = ["alert", "dns", "http", "tls", "ssh", "ftp", "smtp", "flow"];
+
+const eventTypeColors: Record<string, string> = {
+  alert: "#ef4444",
+  dns: "#4d8eff",
+  http: "#df7412",
+  tls: "#adc6ff",
+  ssh: "#8c909f",
+  ftp: "#f59e0b",
+  smtp: "#4ade80",
+  flow: "#22c55e",
+};
+
+function getEventTypeOrder(type: string): number {
+  const index = eventTypeOrder.indexOf(type);
+  return index === -1 ? eventTypeOrder.length : index;
+}
 
 export function EventCharts({ events }: EventChartsProps) {
   const typeCounts = buildTypeCounts(events);
-  const typeLabels = Object.keys(typeCounts);
+  const typeLabels = Object.keys(typeCounts).sort((a, b) => getEventTypeOrder(a) - getEventTypeOrder(b) || a.localeCompare(b));
   const minuteBuckets = buildMinuteBuckets(events);
 
   return (
@@ -37,7 +53,13 @@ export function EventCharts({ events }: EventChartsProps) {
         <Doughnut
           data={{
             labels: typeLabels,
-            datasets: [{ data: typeLabels.map((label) => typeCounts[label]), backgroundColor: chartColors, borderWidth: 0 }],
+            datasets: [
+              {
+                data: typeLabels.map((label) => typeCounts[label]),
+                backgroundColor: typeLabels.map((label) => eventTypeColors[label] ?? "#8c909f"),
+                borderWidth: 0,
+              },
+            ],
           }}
           options={{
             responsive: true,
