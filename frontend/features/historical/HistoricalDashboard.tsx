@@ -12,7 +12,7 @@ export function HistoricalDashboard() {
 
   return (
     <main className="min-h-screen px-3 py-3 text-foreground sm:px-4 lg:px-6">
-      <div className="mx-auto flex max-w-[1800px] flex-col gap-3">
+      <div className="mx-auto flex max-w-450 flex-col gap-3">
         <PageHeading eyebrow="Elasticsearch" title="Histórico de eventos" description="KPIs y tendencia temporal obtenidos desde los endpoints históricos de analytics." />
         <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
         <HistoricalOverviewSection hours={timeRange} />

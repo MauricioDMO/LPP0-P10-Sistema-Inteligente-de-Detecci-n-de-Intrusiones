@@ -119,7 +119,7 @@ export function Dashboard() {
 
   return (
     <main className="min-h-screen px-3 py-3 text-foreground sm:px-4 lg:px-6">
-      <div className="mx-auto flex max-w-[1800px] flex-col gap-3">
+      <div className="mx-auto flex max-w-450 flex-col gap-3">
         <Header totalEvents={stats.total} eventLimit={eventLimit} status={connectionStatus} />
         <StatsBar stats={stats} />
         <section className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(440px,0.72fr)]" aria-label="Visualización de amenazas en vivo">

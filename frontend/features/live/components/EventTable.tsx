@@ -45,7 +45,7 @@ export function EventTable({ events }: EventTableProps) {
         </div>
       </div>
       <div className="overflow-x-auto">
-        <table className="min-w-[1080px] w-full border-collapse text-left text-xs">
+        <table className="min-w-270 w-full border-collapse text-left text-xs">
           <thead>
             <tr className="border-b border-soc-outline bg-soc-lowest/95 text-[10px] uppercase tracking-[0.12em] text-soc-muted">
               <th className="px-2.5 py-2 font-bold">Sev</th>
@@ -58,7 +58,7 @@ export function EventTable({ events }: EventTableProps) {
               <th className="px-2.5 py-2 font-bold">Threat</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.045]">
+          <tbody className="divide-y divide-white/4.5">
             {events.length === 0 ? (
               <tr>
                 <td className="px-3 py-8 text-center text-soc-muted" colSpan={8}>Sin eventos que coincidan con los filtros activos</td>
@@ -129,12 +129,12 @@ function EventRow({ event }: { event: SuricataEvent }) {
   return (
     <tr className={`transition hover:bg-soc-blue/5 ${eventType === "alert" ? "border-l-2 border-l-soc-danger" : "border-l-2 border-l-transparent"}`}>
       <td className="px-2.5 py-2 align-top">
-        <span className={`inline-flex rounded-sm border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${severityClass(severity)}`}>
+        <span className={`inline-flex rounded-sm border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${severityClass(severity)}`}>
           {getSeverityLabel(severity)} {severity > 0 ? severity : ""}
         </span>
       </td>
       <td className="px-2.5 py-2 align-top">
-        <span className={`inline-flex rounded-sm border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] ${eventTypeClass(eventType)}`}>{eventType || "eve"}</span>
+        <span className={`inline-flex rounded-sm border px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest ${eventTypeClass(eventType)}`}>{eventType || "eve"}</span>
       </td>
       <td className="px-2.5 py-2 align-top font-mono text-[11px] text-soc-muted whitespace-nowrap">{getTimestamp(event)}</td>
       <td className="px-2.5 py-2 align-top">
@@ -147,17 +147,17 @@ function EventRow({ event }: { event: SuricataEvent }) {
         <div className="font-mono text-[11px] font-bold text-white">{proto || "N/A"}</div>
         <div className="mt-0.5 text-[11px] text-soc-muted">{srcPort ?? "-"} -&gt; {dstPort ?? "-"}</div>
       </td>
-      <td className="max-w-[340px] px-2.5 py-2 align-top">
+      <td className="max-w-85 px-2.5 py-2 align-top">
         <div className="truncate text-xs text-white" title={message}>{message}</div>
         {category ? <div className="mt-0.5 truncate text-[11px] text-soc-muted" title={category}>{category}</div> : null}
       </td>
       <td className="px-2.5 py-2 align-top">
         {isMalicious ? (
-          <span className="inline-flex rounded-sm border border-soc-danger/35 bg-soc-danger/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.1em] text-red-200">
+          <span className="inline-flex rounded-sm border border-soc-danger/35 bg-soc-danger/15 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-widest text-red-200">
             MAL {confidence}% / {reports}
           </span>
         ) : (
-          <span className="inline-flex rounded-sm border border-soc-success/25 bg-soc-success/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-green-200">Limpia</span>
+          <span className="inline-flex rounded-sm border border-soc-success/25 bg-soc-success/10 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-green-200">Limpia</span>
         )}
       </td>
     </tr>
@@ -180,9 +180,9 @@ function Endpoint({
       <div className="font-mono text-[11px] font-bold text-white">
         {ip || "-"}{port ? <span className="text-soc-muted">:{port}</span> : null}
       </div>
-      {hostname ? <div className="mt-0.5 max-w-[190px] truncate text-[11px] text-soc-muted" title={hostname}>{hostname}</div> : null}
+      {hostname ? <div className="mt-0.5 max-w-47.5 truncate text-[11px] text-soc-muted" title={hostname}>{hostname}</div> : null}
       {geo?.country_code || geo?.country || geo?.city ? (
-        <div className="mt-0.5 max-w-[190px] truncate text-[11px] text-soc-muted">
+        <div className="mt-0.5 max-w-47.5 truncate text-[11px] text-soc-muted">
           {geo.country_code ? <span className="mr-1">{getFlagEmoji(geo.country_code)}</span> : null}
           {[geo.city, geo.country].filter(Boolean).join(", ")}
         </div>

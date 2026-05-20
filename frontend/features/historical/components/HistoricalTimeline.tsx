@@ -30,7 +30,7 @@ export function HistoricalTimeline({ hours }: HistoricalTimelineProps) {
     <AnalyticsShell eyebrow="Tendencia" title="Tendencia histórica">
       <AnalyticsState loading={loading} error={error} empty={points.length === 0} />
       {!loading && !error && points.length > 0 ? (
-        <div className="relative h-[300px]">
+        <div className="relative h-75">
           <Line
             data={{
               labels: points.map((point) => formatTimelineLabel(point.timestamp, hours)),

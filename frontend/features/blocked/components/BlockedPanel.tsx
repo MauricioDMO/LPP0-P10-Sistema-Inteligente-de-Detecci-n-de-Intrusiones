@@ -49,7 +49,7 @@ function RankList({ title, items, mono, highlightBlocked }: { title: string; ite
         {items.map((item) => {
           const blocked = highlightBlocked && item.label.toLowerCase().includes("bloqueo");
           return (
-            <div className="flex items-center justify-between gap-3 rounded border border-white/[0.05] bg-soc-low/70 px-2 py-2" key={item.label}>
+            <div className="flex items-center justify-between gap-3 rounded border border-white/5 bg-soc-low/70 px-2 py-2" key={item.label}>
               <span className={`min-w-0 truncate text-xs ${mono ? "font-mono" : ""} ${blocked ? "text-amber-200" : "text-white"}`} title={item.label}>{item.label}</span>
               <span className="shrink-0 rounded bg-soc-blue/15 px-2 py-1 font-mono text-[11px] font-bold text-soc-primary">{item.count}</span>
             </div>

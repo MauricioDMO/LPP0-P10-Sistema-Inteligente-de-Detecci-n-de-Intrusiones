@@ -45,7 +45,7 @@ export function EventCharts({ events }: EventChartsProps) {
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-2" aria-label="Gráficos de eventos">
       <div className="relative overflow-hidden rounded-lg border border-soc-outline/80 bg-soc-low/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.2)]">
-        <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-soc-danger/40 via-soc-primary/35 to-transparent" />
+        <div className="absolute inset-x-4 top-0 h-px bg-linear-to-r from-soc-danger/40 via-soc-primary/35 to-transparent" />
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-soc-muted">Distribución por tipo</h2>
           <span className="font-mono text-xs text-soc-muted">{events.length} eventos</span>
@@ -70,7 +70,7 @@ export function EventCharts({ events }: EventChartsProps) {
         />
       </div>
       <div className="relative overflow-hidden rounded-lg border border-soc-outline/80 bg-soc-low/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.2)]">
-        <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-soc-success/35 via-soc-blue/35 to-transparent" />
+        <div className="absolute inset-x-4 top-0 h-px bg-linear-to-r from-soc-success/35 via-soc-blue/35 to-transparent" />
         <div className="mb-3 flex items-center justify-between gap-3">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-soc-muted">Eventos por minuto</h2>
           <span className="rounded-sm border border-soc-success/25 bg-soc-success/10 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-green-200">Live</span>

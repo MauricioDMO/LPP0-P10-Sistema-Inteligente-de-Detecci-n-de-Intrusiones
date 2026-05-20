@@ -11,7 +11,7 @@ export function BlockedDashboard() {
 
   return (
     <main className="min-h-screen px-3 py-3 text-foreground sm:px-4 lg:px-6">
-      <div className="mx-auto flex max-w-[1800px] flex-col gap-3">
+      <div className="mx-auto flex max-w-450 flex-col gap-3">
         <PageHeading eyebrow="IPS" title="Bloqueos" description="Vista dedicada para probar que las reglas de bloqueo están actuando y qué IPs participan." />
         <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
         <BlockedPanel hours={timeRange} />

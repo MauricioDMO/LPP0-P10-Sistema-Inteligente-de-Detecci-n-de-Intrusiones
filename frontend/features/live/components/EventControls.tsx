@@ -150,15 +150,15 @@ export function EventControls({
             />
           </label>
 
-          <button className="h-10 rounded-md border border-soc-primary/45 bg-soc-blue/15 px-3 text-xs font-bold uppercase tracking-[0.1em] text-soc-primary transition hover:border-soc-primary/70 hover:bg-soc-blue/20 hover:text-white sm:col-span-2 lg:col-span-1 xl:col-span-2" onClick={applyRuntimeOptions} type="button">
+          <button className="h-10 rounded-md border border-soc-primary/45 bg-soc-blue/15 px-3 text-xs font-bold uppercase tracking-widest text-soc-primary transition hover:border-soc-primary/70 hover:bg-soc-blue/20 hover:text-white sm:col-span-2 lg:col-span-1 xl:col-span-2" onClick={applyRuntimeOptions} type="button">
             Actualizar flujo
           </button>
 
           <div className="grid gap-2 sm:col-span-2 sm:grid-cols-2 lg:col-span-1 xl:col-span-2">
-            <button className="h-10 rounded-md border border-soc-success/45 bg-soc-success/10 px-3 text-xs font-bold uppercase tracking-[0.1em] text-green-200 transition hover:bg-soc-success/15" onClick={onExport} type="button">
+            <button className="h-10 rounded-md border border-soc-success/45 bg-soc-success/10 px-3 text-xs font-bold uppercase tracking-widest text-green-200 transition hover:bg-soc-success/15" onClick={onExport} type="button">
               Exportar CSV
             </button>
-            <button className="h-10 rounded-md border border-soc-danger/35 bg-soc-danger/10 px-3 text-xs font-bold uppercase tracking-[0.1em] text-red-200 transition hover:bg-soc-danger/15" onClick={onClear} type="button">
+            <button className="h-10 rounded-md border border-soc-danger/35 bg-soc-danger/10 px-3 text-xs font-bold uppercase tracking-widest text-red-200 transition hover:bg-soc-danger/15" onClick={onClear} type="button">
               Limpiar
             </button>
           </div>

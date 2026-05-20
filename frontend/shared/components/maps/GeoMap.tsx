@@ -83,12 +83,12 @@ export function GeoMap({ events = [], resetKey = 0, points = [], mode = "live", 
 
   return (
     <section className="relative overflow-hidden rounded-lg border border-soc-outline/80 bg-soc-low/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.2)]" aria-label="Mapa de geolocalización">
-      <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-soc-orange/45 via-soc-primary/35 to-transparent" />
+      <div className="absolute inset-x-4 top-0 h-px bg-linear-to-r from-soc-orange/45 via-soc-primary/35 to-transparent" />
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-soc-muted">{title}</h2>
         <span className="font-mono text-xs text-soc-muted">{subtitle}</span>
       </div>
-      <div className="h-[320px] overflow-hidden rounded border border-soc-outline bg-soc-lowest brightness-75 contrast-110 saturate-75 md:h-[372px] [&_.leaflet-tile-pane]:opacity-60" ref={mapElementRef} />
+      <div className="h-80 overflow-hidden rounded border border-soc-outline bg-soc-lowest brightness-75 contrast-110 saturate-75 md:h-93 [&_.leaflet-tile-pane]:opacity-60" ref={mapElementRef} />
     </section>
   );
 }

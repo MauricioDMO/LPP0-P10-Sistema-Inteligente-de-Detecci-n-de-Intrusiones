@@ -21,7 +21,7 @@ const statusClass: Record<ConnectionStatus, string> = {
 export function Header({ totalEvents, eventLimit, status }: HeaderProps) {
   return (
     <header className="relative overflow-hidden rounded-lg border border-soc-outline/80 bg-soc-low/90 px-4 py-4 shadow-[0_18px_60px_rgba(0,0,0,0.34)] backdrop-blur md:px-5">
-      <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-soc-primary/60 to-transparent" />
+      <div className="absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-soc-primary/60 to-transparent" />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="mb-2 flex flex-wrap items-center gap-2 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-soc-primary">

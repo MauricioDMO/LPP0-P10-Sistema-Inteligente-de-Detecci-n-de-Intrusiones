@@ -52,14 +52,14 @@ export function AppNav() {
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-[280px] border-r border-soc-outline/80 bg-soc-low/95 px-3 py-3 text-foreground shadow-[28px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl transition-[width,transform] duration-300 lg:sticky lg:top-0 lg:z-30 lg:h-screen lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-70 border-r border-soc-outline/80 bg-soc-low/95 px-3 py-3 text-foreground shadow-[28px_0_70px_rgba(0,0,0,0.38)] backdrop-blur-xl transition-[width,transform] duration-300 lg:sticky lg:top-0 lg:z-30 lg:h-screen lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full"
-        } ${isCollapsed ? "lg:w-[80px]" : "lg:w-[280px]"}`}
+        } ${isCollapsed ? "lg:w-20" : "lg:w-70"}`}
         id="app-sidebar"
       >
         <nav className="flex h-full flex-col" aria-label="Navegación principal">
           <div className={`mb-4 flex items-start justify-between gap-3 rounded-lg border border-soc-outline/70 bg-soc-lowest/65 p-3 transition-[gap,padding] duration-300 ${isCollapsed ? "lg:justify-center lg:gap-0 lg:px-2" : ""}`}>
-            <div className={`min-w-0 overflow-hidden transition-[width,opacity,transform] duration-300 ${isCollapsed ? "lg:w-0 lg:-translate-x-1 lg:opacity-0" : "lg:w-[160px] lg:translate-x-0 lg:opacity-100"}`}>
+            <div className={`min-w-0 overflow-hidden transition-[width,opacity,transform] duration-300 ${isCollapsed ? "lg:w-0 lg:-translate-x-1 lg:opacity-0" : "lg:w-40 lg:translate-x-0 lg:opacity-100"}`}>
               <div className="truncate whitespace-nowrap text-nowrap font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-soc-primary">Suricata</div>
               <div className="mt-1 truncate whitespace-nowrap text-nowrap text-lg font-black tracking-[-0.04em] text-white">Threat Ops</div>
               <div className="mt-1 truncate whitespace-nowrap text-nowrap text-xs text-soc-muted">Panel IPS / IDS</div>
@@ -103,7 +103,7 @@ export function AppNav() {
                   <div className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md border ${isActive ? "border-soc-primary/40 bg-soc-primary/10 text-soc-primary" : "border-soc-outline/70 bg-soc-low text-soc-muted group-hover:text-white"}`}>
                     <ItemIcon size={20} stroke={1.8} />
                   </div>
-                  <span className={`min-w-0 max-w-full overflow-hidden transition-[width,opacity,transform] duration-300 ${isCollapsed ? "lg:w-0 lg:-translate-x-1 lg:opacity-0" : "lg:w-[168px] lg:translate-x-0 lg:opacity-100"}`}>
+                  <span className={`min-w-0 max-w-full overflow-hidden transition-[width,opacity,transform] duration-300 ${isCollapsed ? "lg:w-0 lg:-translate-x-1 lg:opacity-0" : "lg:w-42 lg:translate-x-0 lg:opacity-100"}`}>
                     <span className="block truncate whitespace-nowrap text-nowrap text-xs font-black uppercase tracking-[0.13em]">{item.label}</span>
                     <span className="mt-1 block truncate whitespace-nowrap text-nowrap font-mono text-[10px] uppercase tracking-[0.12em] text-soc-muted">{item.detail}</span>
                   </span>

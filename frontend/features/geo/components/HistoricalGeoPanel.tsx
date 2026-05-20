@@ -50,7 +50,7 @@ function GeoRank({ title, items }: { title: string; items: Array<{ label: string
               <span className="font-mono font-bold text-soc-primary">{item.count}</span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-soc-outline/25">
-              <div className="h-full rounded-full bg-gradient-to-r from-soc-blue via-soc-warning to-soc-danger" style={{ width: `${Math.max(8, (item.count / max) * 100)}%` }} />
+              <div className="h-full rounded-full bg-linear-to-r from-soc-blue via-soc-warning to-soc-danger" style={{ width: `${Math.max(8, (item.count / max) * 100)}%` }} />
             </div>
           </div>
         ))}

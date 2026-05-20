@@ -8,7 +8,7 @@ type AnalyticsShellProps = {
 export function AnalyticsShell({ title, eyebrow, children, actions }: AnalyticsShellProps) {
   return (
     <section className="relative overflow-hidden rounded-lg border border-soc-outline/80 bg-soc-low/85 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.2)]">
-      <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-soc-orange/45 via-soc-primary/35 to-transparent" />
+      <div className="absolute inset-x-4 top-0 h-px bg-linear-to-r from-soc-orange/45 via-soc-primary/35 to-transparent" />
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="font-mono text-[10px] font-bold uppercase tracking-[0.16em] text-soc-primary">{eyebrow}</div>
