@@ -42,8 +42,8 @@ def overview_aggs() -> dict:
         "by_severity": {
             "terms": {"field": "suricata.eve.alert.severity", "size": 10}
         },
-        "unique_source_ips": {"cardinality": {"field": "source.ip"}},
-        "unique_destination_ips": {"cardinality": {"field": "destination.ip"}},
+        "unique_source_ips": {"cardinality": {"field": "source.ip.keyword"}},
+        "unique_destination_ips": {"cardinality": {"field": "destination.ip.keyword"}},
         "alerts": {"filter": alert_filter()},
         "blocked": {"filter": blocked_signature_filter()},
     }
@@ -109,8 +109,8 @@ def blocked_aggs(size: int) -> dict:
         "signatures": {
             "terms": {"field": "suricata.eve.alert.signature.keyword", "size": size}
         },
-        "source_ips": {"terms": {"field": "source.ip", "size": size}},
-        "dest_ips": {"terms": {"field": "destination.ip", "size": size}},
+        "source_ips": {"terms": {"field": "source.ip.keyword", "size": size}},
+        "dest_ips": {"terms": {"field": "destination.ip.keyword", "size": size}},
         "by_type": {
             "terms": {"field": "suricata.eve.event_type.keyword", "size": 10}
         },

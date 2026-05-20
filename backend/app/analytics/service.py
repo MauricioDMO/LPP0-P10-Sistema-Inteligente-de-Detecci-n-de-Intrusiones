@@ -61,7 +61,7 @@ async def get_timeline(hours: int = 24, interval: str = "5m") -> dict:
 
 
 async def get_top_ips(hours: int = 24, direction: str = "source", size: int = 10) -> dict:
-    field = "source.ip" if direction == "source" else "destination.ip"
+    field = "source.ip.keyword" if direction == "source" else "destination.ip.keyword"
     resp = await es.search(
         index=settings.elasticsearch_index,
         query=bool_query(hours),
