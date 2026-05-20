@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     elasticsearch_port: int = 9200
     elasticsearch_scheme: str = "http"
     elasticsearch_index: str = "suricata-*"
+    elasticsearch_enriched_index: str = "suricata-enriched-*"
+    elasticsearch_enriched_write_index: str = "suricata-enriched"
+    enriched_index_enabled: bool = True
 
     # FastAPI
     api_host: str = "0.0.0.0"

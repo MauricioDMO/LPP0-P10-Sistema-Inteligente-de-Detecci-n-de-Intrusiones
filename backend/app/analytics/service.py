@@ -1,9 +1,11 @@
 """Servicios publicos de analytics historico."""
 
+from elasticsearch import NotFoundError
+
 from ..config import settings
 from ..es_client import es
 from .formatters import bucket_list, severity_counts
-from .geo import aggregate_geo
+from .geo import aggregate_geo_from_elasticsearch
 from .queries import (
     alert_filter,
     blocked_aggs,
@@ -127,14 +129,22 @@ async def get_blocked(hours: int = 24, size: int = 10) -> dict:
     }
 
 
-async def get_geo(hours: int = 24, sample_size: int = 200) -> dict:
-    resp = await es.search(
-        index=settings.elasticsearch_index,
-        query=bool_query(hours),
-        sort=[{"@timestamp": {"order": "desc"}}],
-        size=sample_size,
-        _source=True,
-    )
-    events = [hit["_source"] for hit in resp["hits"]["hits"]]
-    geo = await aggregate_geo(events)
+async def get_geo(hours: int = 24) -> dict:
+    try:
+        geo = await aggregate_geo_from_elasticsearch(
+            es=es,
+            index=settings.elasticsearch_enriched_index,
+            query=bool_query(hours),
+        )
+    except NotFoundError:
+        return {
+            "hours": hours,
+            "total_events": 0,
+            "geolocated_observations": 0,
+            "countries": [],
+            "cities": [],
+            "isps": [],
+            "points": [],
+        }
+
     return {"hours": hours, **geo}

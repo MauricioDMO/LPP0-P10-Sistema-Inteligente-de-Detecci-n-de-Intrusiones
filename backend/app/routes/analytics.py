@@ -53,7 +53,6 @@ async def analytics_blocked(
 @router.get("/geo")
 async def analytics_geo(
     hours: int = Query(24, ge=1, le=168),
-    sample_size: int = Query(200, ge=1, le=1000),
 ):
-    """Agregacion geografica usando eventos enriquecidos por el backend."""
-    return await service.get_geo(hours=hours, sample_size=sample_size)
+    """Agregacion geografica completa usando eventos enriquecidos persistidos."""
+    return await service.get_geo(hours=hours)

@@ -12,6 +12,7 @@ from .config import settings
 from .redis_consumer import RedisEventConsumer
 from .filters import EventFilter, DefaultFilters, EventType
 from .enricher import enrich_event
+from .enriched_writer import ensure_enriched_template, persist_enriched_event
 from . import notifier
 from .routes import analytics, events
 
@@ -42,6 +43,7 @@ async def broadcast_event(event: dict) -> None:
 async def event_callback(event: dict) -> None:
     """Callback que se ejecuta cuando llega un evento de Redis."""
     event = await enrich_event(event)
+    asyncio.create_task(persist_enriched_event(event))
     await notifier.process_event(event)
     if current_filter.matches(event):
         await broadcast_event(event)
@@ -90,6 +92,7 @@ async def lifespan(app: FastAPI):
     """Gestiona el ciclo de vida de la aplicación."""
     # Startup
     logger.info(f"🚀 Iniciando {settings.api_title} v{settings.api_version}")
+    await ensure_enriched_template()
     await start_consumer()
     yield
     # Shutdown
