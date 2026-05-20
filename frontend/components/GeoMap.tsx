@@ -31,8 +31,19 @@ export function GeoMap({ events, resetKey }: GeoMapProps) {
       if (cancelled || !mapElementRef.current) return;
 
       leafletRef.current = leaflet;
-      mapRef.current = leaflet.map(mapElementRef.current, { zoomControl: true, attributionControl: false }).setView([15, -10], 2);
-      leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 18 }).addTo(mapRef.current);
+      mapRef.current = leaflet
+        .map(mapElementRef.current, {
+          attributionControl: false,
+          boxZoom: false,
+          doubleClickZoom: false,
+          dragging: false,
+          keyboard: false,
+          scrollWheelZoom: false,
+          touchZoom: false,
+          zoomControl: false,
+        })
+        .setView([15, -10], 2);
+      leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 2, minZoom: 2 }).addTo(mapRef.current);
       setMapReady(true);
     }
 
@@ -62,11 +73,13 @@ export function GeoMap({ events, resetKey }: GeoMapProps) {
   }, [events, resetKey, mapReady]);
 
   return (
-    <section className="map-row" aria-label="Mapa de geolocalización">
-      <div className="map-box">
-        <h3>Mapa de geolocalización</h3>
-        <div className="map" ref={mapElementRef} />
+    <section className="relative overflow-hidden rounded-lg border border-soc-outline/80 bg-soc-low/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.2)]" aria-label="Mapa de geolocalización">
+      <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-soc-orange/45 via-soc-primary/35 to-transparent" />
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-soc-muted">Mapa de geolocalización</h2>
+        <span className="font-mono text-xs text-soc-muted">Source / destination</span>
       </div>
+      <div className="h-[320px] overflow-hidden rounded border border-soc-outline bg-soc-lowest brightness-75 contrast-110 saturate-75 md:h-[372px] [&_.leaflet-tile-pane]:opacity-60" ref={mapElementRef} />
     </section>
   );
 }
@@ -88,21 +101,23 @@ function addMarker(
 
   const ip = direction === "source" ? getSrcIP(event) : getDstIP(event);
   const isMalicious = event._threat?.is_malicious;
+  const confidence = event._threat?.confidence ?? 0;
   const popupContent = `
-    <div style="font-family:system-ui;font-size:13px;min-width:180px">
-      <b>${ip}</b><br>
-      ${geo.country ? `${geo.country}${geo.city ? `, ${geo.city}` : ""}` : ""}<br>
-      ${geo.isp ? geo.isp : ""}
-      ${isMalicious ? '<br><span style="color:#ff4444;font-weight:700">MALICIOSA</span>' : ""}
+    <div style="font-size:12px;min-width:190px;line-height:1.45">
+      <div style="font-family:monospace;font-weight:800;color:#fff">${ip}</div>
+      <div style="color:#c2c6d6">${direction === "source" ? "Origen" : "Destino"}</div>
+      <div>${geo.country ? `${geo.country}${geo.city ? `, ${geo.city}` : ""}` : "Ubicación no disponible"}</div>
+      <div style="color:#8c909f">${geo.isp ? geo.isp : "ISP no disponible"}</div>
+      ${isMalicious ? `<div style="margin-top:6px;color:#ffb4ab;font-weight:800">MALICIOSA ${confidence}%</div>` : ""}
     </div>`;
 
   const marker = leaflet.circleMarker([geo.lat, geo.lon], {
-    radius: 7,
-    fillColor: isMalicious ? "#ff4444" : "#4dd4ac",
-    color: "#fff",
+    radius: isMalicious ? 9 : 7,
+    fillColor: isMalicious ? "#ef4444" : direction === "source" ? "#4d8eff" : "#4ade80",
+    color: isMalicious ? "#ffb4ab" : "#e1e2ec",
     weight: 2,
     opacity: 1,
-    fillOpacity: 0.8,
+    fillOpacity: 0.82,
   }).addTo(map);
 
   marker.bindPopup(popupContent);

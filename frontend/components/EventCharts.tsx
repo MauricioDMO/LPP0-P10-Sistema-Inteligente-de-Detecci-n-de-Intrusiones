@@ -19,7 +19,7 @@ type EventChartsProps = {
   events: SuricataEvent[];
 };
 
-const chartColors = ["#ff6b6b", "#4dd4ac", "#4d94ff", "#b279ff", "#ffc107", "#ff9900", "#8892a8"];
+const chartColors = ["#ef4444", "#4d8eff", "#adc6ff", "#df7412", "#f59e0b", "#4ade80", "#8c909f"];
 
 export function EventCharts({ events }: EventChartsProps) {
   const typeCounts = buildTypeCounts(events);
@@ -27,9 +27,13 @@ export function EventCharts({ events }: EventChartsProps) {
   const minuteBuckets = buildMinuteBuckets(events);
 
   return (
-    <section className="main-grid" aria-label="Gráficos de eventos">
-      <div className="chart-box">
-        <h3>Tipos de evento</h3>
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2" aria-label="Gráficos de eventos">
+      <div className="relative overflow-hidden rounded-lg border border-soc-outline/80 bg-soc-low/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.2)]">
+        <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-soc-danger/40 via-soc-primary/35 to-transparent" />
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-soc-muted">Distribución por tipo</h2>
+          <span className="font-mono text-xs text-soc-muted">{events.length} eventos</span>
+        </div>
         <Doughnut
           data={{
             labels: typeLabels,
@@ -38,28 +42,33 @@ export function EventCharts({ events }: EventChartsProps) {
           options={{
             responsive: true,
             maintainAspectRatio: true,
-            plugins: { legend: { position: "bottom", labels: { color: "#8892a8", font: { size: 11 } } } },
+            cutout: "64%",
+            plugins: { legend: { position: "bottom", labels: { color: "#c2c6d6", font: { size: 11 }, boxWidth: 10, boxHeight: 10 } } },
           }}
         />
       </div>
-      <div className="chart-box">
-        <h3>Eventos por minuto</h3>
+      <div className="relative overflow-hidden rounded-lg border border-soc-outline/80 bg-soc-low/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.2)]">
+        <div className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-soc-success/35 via-soc-blue/35 to-transparent" />
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-soc-muted">Eventos por minuto</h2>
+          <span className="rounded-sm border border-soc-success/25 bg-soc-success/10 px-2 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.12em] text-green-200">Live</span>
+        </div>
         <Bar
           data={{
             labels: minuteBuckets.labels,
-            datasets: [{ label: "Eventos", data: minuteBuckets.values, backgroundColor: "#4dd4ac", borderRadius: 4 }],
+            datasets: [{ label: "Eventos", data: minuteBuckets.values, backgroundColor: "#4d8eff", borderRadius: 3 }],
           }}
           options={{
             responsive: true,
             maintainAspectRatio: true,
             scales: {
-              x: { ticks: { color: "#8892a8", font: { size: 10 } }, grid: { display: false } },
-              y: { beginAtZero: true, ticks: { color: "#8892a8", font: { size: 10 } }, grid: { color: "rgba(255,255,255,0.04)" } },
+              x: { ticks: { color: "#c2c6d6", font: { size: 10 } }, grid: { display: false } },
+              y: { beginAtZero: true, ticks: { color: "#c2c6d6", font: { size: 10 }, precision: 0 }, grid: { color: "rgba(173,198,255,0.08)" } },
             },
             plugins: { legend: { display: false } },
           }}
         />
       </div>
-    </section>
+    </div>
   );
 }

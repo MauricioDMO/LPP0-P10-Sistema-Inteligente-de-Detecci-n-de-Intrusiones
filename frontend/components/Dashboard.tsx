@@ -77,22 +77,26 @@ export function Dashboard() {
   }
 
   return (
-    <main className="dashboard-shell">
-      <Header totalEvents={stats.total} status={connectionStatus} />
-      <StatsBar stats={stats} />
-      <EventCharts events={events} />
-      <GeoMap events={events} resetKey={mapResetKey} />
-      <EventControls
-        filterType={filterType}
-        filterSeverity={filterSeverity}
-        filterSearch={filterSearch}
-        onFilterTypeChange={setFilterType}
-        onSeverityChange={setFilterSeverity}
-        onSearchChange={setFilterSearch}
-        onExport={() => exportEventsCsv(filteredEvents)}
-        onClear={clearEvents}
-      />
-      <EventTable events={filteredEvents} />
+    <main className="min-h-screen px-3 py-3 text-foreground sm:px-4 lg:px-6">
+      <div className="mx-auto flex max-w-[1800px] flex-col gap-3">
+        <Header totalEvents={stats.total} status={connectionStatus} />
+        <StatsBar stats={stats} />
+        <section className="grid grid-cols-1 gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(440px,0.72fr)]" aria-label="Visualización de amenazas">
+          <EventCharts events={events} />
+          <GeoMap events={events} resetKey={mapResetKey} />
+        </section>
+        <EventControls
+          filterType={filterType}
+          filterSeverity={filterSeverity}
+          filterSearch={filterSearch}
+          onFilterTypeChange={setFilterType}
+          onSeverityChange={setFilterSeverity}
+          onSearchChange={setFilterSearch}
+          onExport={() => exportEventsCsv(filteredEvents)}
+          onClear={clearEvents}
+        />
+        <EventTable events={filteredEvents} />
+      </div>
     </main>
   );
 }

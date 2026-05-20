@@ -17,11 +17,16 @@ export type SuricataEvent = {
   event_type?: string;
   src_ip?: string;
   dest_ip?: string;
-  source?: { ip?: string };
-  destination?: { ip?: string };
+  src_port?: number;
+  dest_port?: number;
+  proto?: string;
+  source?: { ip?: string; port?: number };
+  destination?: { ip?: string; port?: number };
+  network?: { transport?: string; protocol?: string };
   alert?: {
     signature?: string;
     severity?: number;
+    category?: string;
   };
   dns?: {
     queries?: Array<{ rrname?: string }>;
@@ -60,6 +65,7 @@ export type SuricataEvent = {
 
 export type DashboardStats = {
   total: number;
+  critical: number;
   alerts: number;
   malicious: number;
   blocked: number;

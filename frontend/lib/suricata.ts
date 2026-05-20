@@ -18,6 +18,18 @@ export function getDstIP(evt: SuricataEvent): string {
   return evt.destination?.ip ?? evt.dest_ip ?? "";
 }
 
+export function getSrcPort(evt: SuricataEvent): number | null {
+  return evt.source?.port ?? evt.src_port ?? null;
+}
+
+export function getDstPort(evt: SuricataEvent): number | null {
+  return evt.destination?.port ?? evt.dest_port ?? null;
+}
+
+export function getProto(evt: SuricataEvent): string {
+  return (evt.network?.transport ?? evt.network?.protocol ?? evt.proto ?? "").toUpperCase();
+}
+
 export function isBlocked(evt: SuricataEvent): boolean {
   const signature = evt.suricata?.eve?.alert?.signature ?? evt.alert?.signature ?? "";
   return signature.toLowerCase().includes("bloqueo");
@@ -25,6 +37,18 @@ export function isBlocked(evt: SuricataEvent): boolean {
 
 export function getSeverity(evt: SuricataEvent): number {
   return evt.suricata?.eve?.alert?.severity ?? evt.alert?.severity ?? 0;
+}
+
+export function getSeverityLabel(severity: number): string {
+  if (severity === 1) return "Crítica";
+  if (severity === 2) return "Alta";
+  if (severity === 3) return "Media";
+  if (severity === 4) return "Baja";
+  return "Info";
+}
+
+export function getCategory(evt: SuricataEvent): string {
+  return evt.suricata?.eve?.alert?.category ?? evt.alert?.category ?? "";
 }
 
 export function getMessage(evt: SuricataEvent): string {
@@ -78,6 +102,7 @@ export function buildStats(events: SuricataEvent[]): DashboardStats {
   const ips = new Set<string>();
   const stats: DashboardStats = {
     total: 0,
+    critical: 0,
     alerts: 0,
     malicious: 0,
     blocked: 0,
@@ -90,6 +115,7 @@ export function buildStats(events: SuricataEvent[]): DashboardStats {
     if (!isRelevantEvent(evt)) continue;
 
     stats.total += 1;
+    if (getSeverity(evt) === 1 || getSeverity(evt) === 2) stats.critical += 1;
     if (eventType === "alert") {
       stats.alerts += 1;
       if (isBlocked(evt)) stats.blocked += 1;
@@ -156,5 +182,21 @@ export function matchesFilter(
   const query = filterSearch.trim().toLowerCase();
   if (!query) return true;
 
-  return [getMessage(evt), getSrcIP(evt), getDstIP(evt)].some((value) => value.toLowerCase().includes(query));
+  const values = [
+    getMessage(evt),
+    getSrcIP(evt),
+    getDstIP(evt),
+    getProto(evt),
+    getCategory(evt),
+    evt._resolved?.source_hostname ?? "",
+    evt._resolved?.dest_hostname ?? "",
+    evt._geo?.source?.country ?? "",
+    evt._geo?.source?.city ?? "",
+    evt._geo?.source?.isp ?? "",
+    evt._geo?.destination?.country ?? "",
+    evt._geo?.destination?.city ?? "",
+    evt._geo?.destination?.isp ?? "",
+  ];
+
+  return values.some((value) => value.toLowerCase().includes(query));
 }
