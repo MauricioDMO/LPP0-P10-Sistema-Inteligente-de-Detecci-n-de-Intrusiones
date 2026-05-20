@@ -4,9 +4,6 @@ import asyncio
 import json
 import logging
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
-from pathlib import Path
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from typing import Set
@@ -106,20 +103,6 @@ app = FastAPI(
     version=settings.api_version,
     lifespan=lifespan,
 )
-
-# Montar archivos estáticos para servir el frontend desde el mismo host/puerto
-static_dir = Path(__file__).resolve().parent / "static"
-if static_dir.exists():
-    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
-
-
-@app.get("/frontend")
-async def frontend_index():
-    """Sirve la página de frontend corregida desde el propio backend."""
-    f = static_dir / "frontend_realtime_fix.html"
-    if f.exists():
-        return FileResponse(str(f))
-    return {"error": "frontend not found"}
 
 # CORS
 app.add_middleware(
