@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Query
 from typing import Optional
 from datetime import datetime, timezone
-from ..es_client import get_latest, get_stats, search_events as es_search
+from ..es_queries import get_latest, get_stats, search_events as es_search
 
 router = APIRouter(prefix="/api/events", tags=["events"])
 

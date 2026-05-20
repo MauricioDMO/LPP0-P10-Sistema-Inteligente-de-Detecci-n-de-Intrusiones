@@ -13,7 +13,7 @@ from .redis_consumer import RedisEventConsumer
 from .filters import EventFilter, DefaultFilters, EventType
 from .enricher import enrich_event
 from . import notifier
-from .routes import events
+from .routes import analytics, events
 
 # Configurar logging
 logging.basicConfig(
@@ -114,6 +114,7 @@ app.add_middleware(
 )
 
 # Incluir routers
+app.include_router(analytics.router)
 app.include_router(events.router)
 
 
