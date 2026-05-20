@@ -65,7 +65,7 @@ export function AppNav() {
               <div className="mt-1 truncate whitespace-nowrap text-nowrap text-xs text-soc-muted">Panel IPS / IDS</div>
             </div>
             <button
-              className="hidden h-9 w-9 items-center justify-center rounded-md border border-soc-outline/70 bg-soc-low text-soc-muted transition hover:border-soc-primary/50 hover:text-white lg:inline-flex"
+              className="hidden self-stretch px-2 items-center justify-center rounded-md border border-soc-outline/70 bg-soc-low text-soc-muted transition hover:border-soc-primary/50 hover:text-white lg:inline-flex"
               onClick={() => setIsCollapsed((collapsed) => !collapsed)}
               title={isCollapsed ? "Expandir navegación" : "Colapsar navegación"}
               type="button"
