@@ -61,10 +61,8 @@ export function GeoMap({ events = [], resetKey = 0, points = [], mode = "live", 
         .setView([15, -10], 2);
       leaflet
         .tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-          bounds: WORLD_BOUNDS,
           maxZoom: isHeatmap ? 6 : 2,
           minZoom: 2,
-          noWrap: true,
         })
         .addTo(mapRef.current);
       setMapReady(true);
