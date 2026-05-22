@@ -11,7 +11,7 @@ Produccion basica significa:
 - Misma arquitectura funcional que desarrollo.
 - Seguridad de Elastic y Redis aun deshabilitada.
 
-No incluye TLS, usuarios, secretos, alta disponibilidad ni backups automatizados.
+No incluye TLS, alta disponibilidad ni backups automatizados. Si incluye autenticacion del dashboard, pero Elastic y Redis siguen sin autenticacion propia.
 
 ## 2. Prerequisitos
 
@@ -48,6 +48,11 @@ Revisar `.env`:
 STACK_VERSION=8.19.14
 SURICATA_MODE=ips
 SURICATA_INTERFACE=wlp0s20f3
+POSTGRES_PASSWORD=<password-fuerte>
+BACKEND_DATABASE_URL=postgresql+asyncpg://suricata:<password-fuerte>@postgres:5432/suricata
+BACKEND_JWT_SECRET=<secreto-largo-aleatorio>
+BACKEND_INITIAL_ADMIN_USERNAME=admin
+BACKEND_INITIAL_ADMIN_PASSWORD=<password-admin-fuerte>
 NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
 ```
@@ -57,6 +62,8 @@ Notas:
 - `SURICATA_MODE=ips` es el modo principal documentado.
 - Si usas `SURICATA_MODE=ids`, configura `SURICATA_INTERFACE` con una interfaz real del host.
 - Puedes usar varias interfaces en IDS separadas por coma.
+- Cambia `POSTGRES_PASSWORD`, `BACKEND_DATABASE_URL`, `BACKEND_JWT_SECRET` y `BACKEND_INITIAL_ADMIN_PASSWORD` antes del primer arranque.
+- El admin inicial solo se crea si PostgreSQL no tiene usuarios.
 
 ## 4. Validar compose
 
@@ -80,6 +87,15 @@ curl http://127.0.0.1:3000
 docker exec redis redis-cli PING
 ```
 
+Validar login:
+
+```bash
+curl -c cookies.txt -b cookies.txt -X POST http://127.0.0.1:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"<password-admin-fuerte>"}'
+curl -b cookies.txt http://127.0.0.1:8000/api/auth/me
+```
+
 ## 7. Apagar
 
 ```bash
@@ -95,6 +111,7 @@ docker compose -f docker-compose.prod.yml down -v
 ## 8. Hardening minimo recomendado
 
 - Mantener `9200`, `8000`, `3000` y `6379` restringidos a localhost o red administrativa.
+- Cambiar todos los secretos por defecto antes del primer arranque.
 - Usar firewall del host.
 - Habilitar seguridad de Elastic antes de exponer datos reales.
 - Agregar autenticacion a Redis si queda accesible fuera del host.

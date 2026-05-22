@@ -32,12 +32,15 @@ Backend env:
 - `BACKEND_DATABASE_URL=postgresql+asyncpg://suricata:suricata@postgres:5432/suricata`
 - `BACKEND_JWT_SECRET`
 - `BACKEND_JWT_EXPIRES_MINUTES=480`
+- Cookie HttpOnly `suricata_session` para JWT.
+- Cookie `suricata_csrf` para doble envio CSRF en mutaciones.
 
 ## Modelos iniciales
 
 - `User`
 - `Role`
 - `UserRole`
+- `User.token_version` para revocar sesiones JWT existentes.
 - base de auditoria minima (`created_by`, `created_at`, `updated_at`) para entidades administrativas futuras.
 
 Roles:
@@ -77,7 +80,8 @@ Agregar:
 ## Validacion
 
 - Crear usuario admin inicial.
-- Login devuelve JWT.
+- Login devuelve usuario, expiracion y cookies de sesion.
 - `/api/auth/me` responde usuario autenticado.
 - Endpoint protegido rechaza requests sin token.
 - Endpoint protegido rechaza usuario sin rol requerido.
+- Logout, cambio de password y desactivacion incrementan `token_version`.

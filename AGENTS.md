@@ -64,9 +64,10 @@ Suricata (IPS) -> NFQUEUE -> iptables OUTPUT
 - Backend tests:
   ```bash
   curl http://localhost:8000/api/events/health
-  curl http://localhost:8000/api/events/latest?limit=3
-  curl http://localhost:8000/api/events/stats?hours=24
-  curl "http://localhost:8000/api/events/search?query=BLOQUEO"
+  curl -c cookies.txt -b cookies.txt -X POST http://localhost:8000/api/auth/login -H "Content-Type: application/json" -d '{"username":"admin","password":"admin123"}'
+  curl -b cookies.txt http://localhost:8000/api/events/latest?limit=3
+  curl -b cookies.txt http://localhost:8000/api/events/stats?hours=24
+  curl -b cookies.txt "http://localhost:8000/api/events/search?query=BLOQUEO"
   ```
 - Redis pub/sub check: `sg docker -c "docker exec redis redis-cli SUBSCRIBE suricata"`.
 - Frontend: `http://localhost:3000`.

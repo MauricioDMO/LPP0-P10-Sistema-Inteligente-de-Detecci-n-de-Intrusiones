@@ -207,11 +207,47 @@ Causas comunes:
 - No existen indices `suricata-*`.
 - Logstash no esta publicando a Elasticsearch.
 
-## 8. Puertos expuestos sin autenticacion
+## 8. Login o endpoints protegidos fallan
+
+Sintomas:
+
+- `/api/events/latest` devuelve `401`.
+- El frontend redirige a `/login`.
+- Login no acepta `admin/admin123`.
+
+Validaciones:
+
+```bash
+docker compose logs --tail=100 backend
+curl http://localhost:8000/api/events/health
+curl -c cookies.txt -b cookies.txt -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+curl -b cookies.txt http://localhost:8000/api/auth/me
+```
+
+Causas comunes:
+
+- El admin inicial solo se crea si no hay usuarios en PostgreSQL.
+- Cambiaste `BACKEND_INITIAL_ADMIN_PASSWORD` despues del primer arranque; no modifica usuarios existentes.
+- La sesion fue revocada por logout, cambio de password o desactivacion.
+- Para mutaciones falta el header `X-CSRF-Token`.
+- Demasiados intentos fallidos de login activaron temporalmente el limite `429`.
+
+Para probar una mutacion con CSRF:
+
+```bash
+CSRF=$(awk '/suricata_csrf/ {print $7}' cookies.txt)
+curl -b cookies.txt -X POST http://localhost:8000/api/auth/logout \
+  -H "X-CSRF-Token: $CSRF"
+```
+
+## 9. Puertos expuestos sin autenticacion
 
 Riesgo:
 
-- Elasticsearch, Redis y Backend no tienen autenticacion en la configuracion actual.
+- Elasticsearch y Redis no tienen autenticacion en la configuracion actual.
+- Backend y Frontend tienen login, pero deben usar secretos fuertes.
 
 Mitigacion minima:
 
@@ -221,7 +257,7 @@ Mitigacion minima:
 - Habilitar seguridad de Elastic antes de manejar datos reales.
 - Agregar autenticacion a Redis si queda accesible fuera del host.
 
-## 9. Frontend no carga o no recibe eventos
+## 10. Frontend no carga o no recibe eventos
 
 Sintomas:
 
@@ -242,6 +278,8 @@ Causas comunes:
 - El servicio `frontend` no esta levantado.
 - `NEXT_PUBLIC_API_URL` o `NEXT_PUBLIC_WS_URL` apuntan a una URL incorrecta.
 - El backend no esta disponible en `8000`.
+- No hay sesion valida; entra por `/login`.
+- El origen del navegador no esta incluido en `BACKEND_CORS_ALLOWED_ORIGINS`; el WebSocket se cierra por politica `1008`.
 - El navegador no puede abrir el WebSocket configurado.
 
 Acciones:
@@ -251,7 +289,7 @@ docker compose up -d --build frontend
 docker compose restart frontend
 ```
 
-## 10. Limpieza completa
+## 11. Limpieza completa
 
 Si necesitas reiniciar desde cero y perder datos locales:
 

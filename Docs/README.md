@@ -19,6 +19,7 @@ Desarrollo o laboratorio:
 
 ```bash
 cp .env.example .env
+# revisar BACKEND_JWT_SECRET y credenciales admin iniciales
 docker compose up -d --build
 ```
 
@@ -45,6 +46,7 @@ Trafico de red
 ```
 
 El frontend Next.js se levanta como servicio `frontend` y consume la API REST/WebSocket del backend.
+Las rutas de dashboard requieren login. La sesion se guarda en cookie HttpOnly emitida por `/api/auth/login`.
 
 ## Documentos
 
@@ -55,6 +57,7 @@ El frontend Next.js se levanta como servicio `frontend` y consume la API REST/We
 - [Logstash](02-Componentes/Logstash.md): distribucion a Elasticsearch y Redis.
 - [Redis](02-Componentes/Redis.md): canal Pub/Sub para eventos en tiempo real.
 - [Elasticsearch](02-Componentes/Elasticsearch.md): indexacion y consulta historica.
+- [PostgreSQL y Auth](02-Componentes/PostgreSQL-Auth.md): ORM, migraciones, JWT, usuarios y roles.
 - [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md): arranque local/laboratorio.
 - [Levantamiento en produccion](03-Operacion/Levantamiento-Produccion.md): arranque con puertos restringidos a localhost.
 - [Inicio y verificacion](03-Operacion/Inicio-y-Verificacion.md): checklist end-to-end.
@@ -69,9 +72,10 @@ El frontend Next.js se levanta como servicio `frontend` y consume la API REST/We
 - Pipeline realtime con Redis Pub/Sub en el canal `suricata`.
 - Dashboard Next.js en `http://localhost:3000` con vistas live, historico, bloqueos, geografia y rankings.
 - Backend con endpoints `/api/events/*`, `/api/analytics/*` y `WS /ws`.
+- Backend con autenticacion JWT por cookie HttpOnly en `/api/auth/*`, CSRF para mutaciones, usuarios/roles persistidos en PostgreSQL y revocacion por `token_version`.
 - Enriquecimiento de eventos con DNS reverso, GeoIP y AbuseIPDB cuando hay configuracion disponible.
 - Seguridad de Elastic y Redis deshabilitada por simplicidad operativa.
 
 ## Nota de seguridad
 
-La configuracion actual no debe exponerse directamente a internet. Para un entorno real, habilita autenticacion, TLS, firewall, control de accesos, backups y monitoreo.
+La configuracion actual no debe exponerse directamente a internet. Para un entorno real, cambia secretos por defecto, habilita TLS, firewall, control de accesos para Elastic/Redis, backups y monitoreo.

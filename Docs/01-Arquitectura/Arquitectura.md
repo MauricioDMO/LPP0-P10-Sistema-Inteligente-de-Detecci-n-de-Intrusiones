@@ -23,7 +23,7 @@ Trafico del host
 - Filebeat lee `eve.json` con el modulo oficial de Suricata y envia los eventos a Logstash por Beats (`logstash:5044`).
 - Logstash recibe los eventos y los publica en dos destinos: Elasticsearch y Redis.
 - Elasticsearch guarda eventos en indices diarios `suricata-YYYY.MM.dd`.
-- Backend FastAPI consulta Elasticsearch para historico y escucha Redis para realtime.
+- Backend FastAPI autentica usuarios con PostgreSQL/JWT, consulta Elasticsearch para historico y escucha Redis para realtime.
 - Redis publica eventos en el canal `suricata` para consumo inmediato.
 - Backend enriquece eventos con DNS reverso, GeoIP y AbuseIPDB, y puede notificar por Telegram.
 - Frontend Next.js muestra vistas en vivo, historicas, bloqueos, rankings y mapa geografico.
@@ -87,6 +87,7 @@ Desarrollo:
 - Redis: `localhost:6379`
 - Backend: `localhost:8000`
 - Frontend: `localhost:3000`
+- PostgreSQL: `localhost:5432`
 
 Produccion basica:
 
@@ -94,6 +95,7 @@ Produccion basica:
 - Redis: `127.0.0.1:6379`
 - Backend: `127.0.0.1:8000`
 - Frontend: `127.0.0.1:3000`
+- PostgreSQL: `127.0.0.1:5432`
 
 Logstash escucha Beats dentro de la red Docker en el puerto `5044`; no se publica al host.
 
@@ -103,6 +105,7 @@ Logstash escucha Beats dentro de la red Docker en el puerto `5044`; no se public
 - `filebeat-data`: guarda offsets para evitar relecturas completas tras reinicios.
 - `esdata`: datos indexados de Elasticsearch.
 - `eslogs`: logs internos de Elasticsearch.
+- `postgres-data`: usuarios, roles y version de tokens para revocacion de sesiones.
 
 El frontend no define volumen persistente; se construye desde `frontend/` y se expone en el puerto `3000`.
 
@@ -112,7 +115,8 @@ Redis no tiene volumen persistente porque se usa solo para Pub/Sub.
 
 - Suricata requiere privilegios elevados y `network_mode: host`.
 - IPS modifica reglas `iptables`/`ip6tables` en `OUTPUT` y `FORWARD` mientras el contenedor esta activo.
-- Elasticsearch, Redis, Backend y Frontend no tienen autenticacion en la configuracion actual.
+- Elasticsearch y Redis no tienen autenticacion en la configuracion actual.
+- Backend y Frontend tienen autenticacion por JWT en cookie HttpOnly, pero requieren secretos fuertes para entornos no locales.
 - Elasticsearch corre en single-node.
 - Redis Pub/Sub no persiste mensajes.
 - `SURICATA_INTERFACE` debe coincidir con interfaces reales cuando se usa modo IDS.
@@ -124,4 +128,4 @@ Redis no tiene volumen persistente porque se usa solo para Pub/Sub.
 - Agregar autenticacion a Redis o restringirlo completamente a red interna.
 - Definir politicas de retencion y backup para Elasticsearch.
 - Agregar monitoreo de salud y recursos.
-- Agregar autenticacion y control de acceso al dashboard.
+- Agregar auditoria persistente de acciones administrativas.

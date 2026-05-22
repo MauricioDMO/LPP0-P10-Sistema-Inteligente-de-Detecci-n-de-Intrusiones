@@ -9,8 +9,9 @@ El flujo del proyecto es:
 3. Logstash distribuye los eventos hacia Elasticsearch y Redis Pub/Sub.
 4. Elasticsearch indexa los documentos historicos.
 5. El backend FastAPI consulta historico y retransmite eventos realtime por WebSocket.
-6. El backend enriquece eventos con DNS reverso, GeoIP y AbuseIPDB, y puede notificar por Telegram.
-7. El frontend Next.js muestra dashboards en vivo e historicos con graficas, mapa, filtros, rankings y exportacion CSV.
+6. El backend autentica usuarios con JWT en cookie HttpOnly, roles persistidos en PostgreSQL y revocacion por `token_version`.
+7. El backend enriquece eventos con DNS reverso, GeoIP y AbuseIPDB, y puede notificar por Telegram.
+8. El frontend Next.js muestra dashboards en vivo e historicos con graficas, mapa, filtros, rankings y exportacion CSV.
 
 ## Integrantes
 
@@ -50,6 +51,15 @@ BACKEND_TELEGRAM_BOT_TOKEN=
 BACKEND_TELEGRAM_CHAT_ID=
 BACKEND_ABUSEIPDB_KEY=
 BACKEND_GEOIP_DB_PATH=/data/GeoLite2-City.mmdb
+POSTGRES_DB=suricata
+POSTGRES_USER=suricata
+POSTGRES_PASSWORD=suricata
+BACKEND_DATABASE_URL=postgresql+asyncpg://suricata:suricata@postgres:5432/suricata
+BACKEND_JWT_SECRET=change-me
+BACKEND_JWT_EXPIRES_MINUTES=480
+BACKEND_INITIAL_ADMIN_USERNAME=admin
+BACKEND_INITIAL_ADMIN_PASSWORD=admin123
+BACKEND_INITIAL_ADMIN_EMAIL=admin@local
 NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
 ```
@@ -94,11 +104,17 @@ Frontend:
 Endpoints utiles:
 
 ```bash
-curl http://localhost:8000/api/events/latest?limit=3
-curl http://localhost:8000/api/events/stats?hours=24
-curl http://localhost:8000/api/analytics/overview?hours=24
-curl "http://localhost:8000/api/analytics/top-ips?hours=24&direction=source&size=5"
+curl -c cookies.txt -b cookies.txt -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+curl -b cookies.txt http://localhost:8000/api/auth/me
+curl -b cookies.txt http://localhost:8000/api/events/latest?limit=3
+curl -b cookies.txt http://localhost:8000/api/events/stats?hours=24
+curl -b cookies.txt http://localhost:8000/api/analytics/overview?hours=24
+curl -b cookies.txt "http://localhost:8000/api/analytics/top-ips?hours=24&direction=source&size=5"
 ```
+
+El frontend inicia sesion en `http://localhost:3000/login`. El admin inicial se toma de `BACKEND_INITIAL_ADMIN_USERNAME` y `BACKEND_INITIAL_ADMIN_PASSWORD` solo si la base no tiene usuarios.
 
 ## Levantamiento en produccion (basico)
 
@@ -122,6 +138,7 @@ Documentos agrupados:
   - [Docs/02-Componentes/Elasticsearch.md](Docs/02-Componentes/Elasticsearch.md)
   - [Docs/02-Componentes/Redis.md](Docs/02-Componentes/Redis.md)
   - [Docs/02-Componentes/Logstash.md](Docs/02-Componentes/Logstash.md)
+  - [Docs/02-Componentes/PostgreSQL-Auth.md](Docs/02-Componentes/PostgreSQL-Auth.md)
 - Operacion:
   - [Docs/03-Operacion/Levantamiento-Desarrollo.md](Docs/03-Operacion/Levantamiento-Desarrollo.md)
   - [Docs/03-Operacion/Levantamiento-Produccion.md](Docs/03-Operacion/Levantamiento-Produccion.md)
@@ -132,4 +149,4 @@ Documentos agrupados:
 
 ## Nota de seguridad
 
-La configuracion actual prioriza facilidad de uso en laboratorio. Antes de exponer el stack en una red real, aplicar hardening (autenticacion, TLS, firewall y control de accesos).
+La configuracion actual prioriza facilidad de uso en laboratorio. Antes de exponer el stack en una red real, cambia `BACKEND_JWT_SECRET`, credenciales iniciales, passwords de PostgreSQL, aplica TLS, firewall, backups y control de accesos para Elastic/Redis.

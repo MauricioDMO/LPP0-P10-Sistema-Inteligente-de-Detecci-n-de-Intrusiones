@@ -29,6 +29,9 @@ Revisar `.env`:
 STACK_VERSION=8.19.14
 SURICATA_MODE=ips
 SURICATA_INTERFACE=wlp0s20f3
+BACKEND_JWT_SECRET=change-me
+BACKEND_INITIAL_ADMIN_USERNAME=admin
+BACKEND_INITIAL_ADMIN_PASSWORD=admin123
 NEXT_PUBLIC_API_URL=http://localhost:8000
 NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
 ```
@@ -38,6 +41,7 @@ Notas:
 - `SURICATA_MODE=ips` es el modo por defecto del proyecto.
 - `SURICATA_INTERFACE` solo se usa en modo `ids`.
 - Si cambias a `SURICATA_MODE=ids`, usa una interfaz real del host.
+- Para laboratorio puedes usar las credenciales por defecto; para cualquier red compartida cambia `BACKEND_JWT_SECRET` y `BACKEND_INITIAL_ADMIN_PASSWORD` antes del primer arranque.
 
 ## 3. Levantar el stack
 
@@ -50,6 +54,8 @@ Servicios levantados:
 - `elasticsearch`
 - `suricata`
 - `redis`
+- `postgres`
+- `elasticsearch-setup`
 - `logstash`
 - `filebeat`
 - `backend`
@@ -70,6 +76,22 @@ Frontend disponible en:
 http://localhost:3000
 ```
 
+Credenciales iniciales de laboratorio:
+
+```text
+usuario: admin
+password: admin123
+```
+
+Tambien puedes validar auth por consola:
+
+```bash
+curl -c cookies.txt -b cookies.txt -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+curl -b cookies.txt http://localhost:8000/api/auth/me
+```
+
 ## 5. Generar trafico de prueba
 
 ```bash
@@ -82,7 +104,7 @@ Luego revisa:
 
 ```bash
 curl http://localhost:9200/_cat/indices?v
-curl http://localhost:8000/api/events/latest?limit=3
+curl -b cookies.txt http://localhost:8000/api/events/latest?limit=3
 ```
 
 Para validar realtime:

@@ -103,14 +103,18 @@ Resultado esperado:
 - Filebeat lee `/var/log/suricata/eve.json`.
 - Filebeat logra publicar eventos en Logstash.
 
-## 7. Backend
+## 7. Backend Y Auth
 
 ```bash
 curl http://localhost:8000/
 curl http://localhost:8000/api/events/health
-curl http://localhost:8000/api/events/latest?limit=3
-curl http://localhost:8000/api/analytics/overview?hours=24
-curl "http://localhost:8000/api/analytics/top-ips?hours=24&direction=source&size=5"
+curl -c cookies.txt -b cookies.txt -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+curl -b cookies.txt http://localhost:8000/api/auth/me
+curl -b cookies.txt http://localhost:8000/api/events/latest?limit=3
+curl -b cookies.txt http://localhost:8000/api/analytics/overview?hours=24
+curl -b cookies.txt "http://localhost:8000/api/analytics/top-ips?hours=24&direction=source&size=5"
 ```
 
 En produccion basica usa `http://127.0.0.1:8000`.
@@ -119,6 +123,8 @@ Resultado esperado:
 
 - El backend responde HTTP.
 - `/api/events/health` retorna `status: ok`.
+- Login crea cookies `suricata_session` y `suricata_csrf`.
+- `/api/auth/me` retorna el usuario autenticado.
 - `/api/events/latest` devuelve eventos si Elasticsearch ya tiene indices.
 - `/api/analytics/overview` y `/api/analytics/top-ips` devuelven agregados si existen eventos en Elasticsearch.
 
@@ -138,8 +144,9 @@ http://127.0.0.1:3000
 
 Resultado esperado:
 
-- El dashboard carga.
-- El estado WebSocket cambia a conectado cuando el backend esta disponible.
+- El frontend muestra `/login` si no hay sesion.
+- Despues del login, el dashboard carga.
+- El estado WebSocket cambia a conectado cuando el backend esta disponible y la sesion es valida.
 - Al generar trafico, aparecen eventos en tabla, graficas y mapa cuando contienen datos geograficos.
 - Las vistas `/historical`, `/blocked`, `/geo` y `/rankings` cargan datos historicos si Elasticsearch tiene eventos.
 
@@ -154,4 +161,6 @@ Resultado esperado:
 - [ ] Existen indices `suricata-*`.
 - [ ] Redis publica eventos en el canal `suricata` si hay suscriptor.
 - [ ] Backend responde en `8000`.
-- [ ] Frontend Next.js carga en `3000`.
+- [ ] Login funciona con el admin inicial.
+- [ ] Endpoints protegidos responden con cookies de sesion.
+- [ ] Frontend Next.js carga en `3000` y permite entrar a `/live`.
