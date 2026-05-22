@@ -4,6 +4,8 @@
 
 Agregar base de datos PostgreSQL con ORM para usuarios, roles, configuracion administrativa y entidades futuras.
 
+Este plan es prerequisito para los modulos administrativos: gestion Suricata, listas negras/blancas, threat intel local, PCAP e incidentes. Implementarlo antes evita guardar configuracion critica en memoria, archivos sueltos o endpoints sin auditoria.
+
 ## Stack propuesto
 
 - PostgreSQL 16.
@@ -36,6 +38,7 @@ Backend env:
 - `User`
 - `Role`
 - `UserRole`
+- base de auditoria minima (`created_by`, `created_at`, `updated_at`) para entidades administrativas futuras.
 
 Roles:
 
@@ -59,7 +62,7 @@ Proteger endpoints administrativos con JWT.
 Permisos sugeridos:
 
 - `admin`: todo.
-- `analyst`: ver dashboard, gestionar incidentes, capturar PCAP.
+- `analyst`: ver dashboard, gestionar configuracion Suricata, gestionar incidentes, capturar PCAP.
 - `viewer`: solo lectura.
 
 ## Frontend
@@ -77,3 +80,4 @@ Agregar:
 - Login devuelve JWT.
 - `/api/auth/me` responde usuario autenticado.
 - Endpoint protegido rechaza requests sin token.
+- Endpoint protegido rechaza usuario sin rol requerido.

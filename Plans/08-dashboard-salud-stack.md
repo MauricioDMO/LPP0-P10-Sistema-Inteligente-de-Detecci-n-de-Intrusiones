@@ -4,6 +4,8 @@
 
 Crear vista de salud operacional del sistema.
 
+Conviene implementarlo despues de PostgreSQL y gestion Suricata para evitar rehacer la pantalla cuando existan perfiles, jobs, versiones aplicadas y fuentes gestionadas.
+
 ## Metricas
 
 Backend:
@@ -36,6 +38,11 @@ Suricata:
 - logs recientes.
 - modo IPS/IDS.
 - reglas NFQUEUE presentes.
+- perfil activo.
+- ultimo job de aplicacion.
+- ultima version de configuracion aplicada.
+- resultado reciente de `suricata-update` y `suricata -T`.
+- fuentes de reglas habilitadas.
 
 Filebeat/Logstash:
 
@@ -49,6 +56,7 @@ Filebeat/Logstash:
 - `GET /api/system/elasticsearch`
 - `GET /api/system/pipeline`
 - `GET /api/system/containers`
+- `GET /api/system/suricata-config`
 
 ## Frontend
 
@@ -65,6 +73,8 @@ Componentes:
 - tiempo desde ultimo evento.
 - cobertura de enriquecimiento: `_geo`, `_resolved`, `_threat`.
 - alerta si `/geo` no puede usar `suricata-enriched-*`.
+- alerta si el ultimo job de aplicacion de Suricata fallo.
+- alerta si el perfil activo no coincide con el modo real IDS/IPS.
 
 ## Seguridad
 
