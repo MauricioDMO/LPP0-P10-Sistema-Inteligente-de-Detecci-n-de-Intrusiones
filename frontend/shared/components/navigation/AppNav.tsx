@@ -7,7 +7,9 @@ import {
   IconChevronRight,
   IconGlobe,
   IconHistory,
+  IconLogout,
   IconMenu2,
+  IconUsers,
   IconShieldLock,
   IconX,
   type Icon,
@@ -15,19 +17,23 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { useAuth } from "@/features/auth/AuthProvider";
 
-const navItems: Array<{ href: string; label: string; detail: string; icon: Icon }> = [
+const navItems: Array<{ href: string; label: string; detail: string; icon: Icon; roles?: string[] }> = [
   { href: "/live", label: "En vivo", detail: "WebSocket", icon: IconActivityHeartbeat },
+  { href: "/geo", label: "Geografía", detail: "Heatmap", icon: IconGlobe },
   { href: "/historical", label: "Histórico", detail: "Elasticsearch", icon: IconHistory },
   { href: "/blocked", label: "Bloqueos", detail: "IPS", icon: IconShieldLock },
-  { href: "/geo", label: "Geografía", detail: "Heatmap", icon: IconGlobe },
   { href: "/rankings", label: "Rankings", detail: "Top N", icon: IconChartBar },
+  { href: "/admin/users", label: "Usuarios", detail: "Admin", icon: IconUsers, roles: ["admin"] },
 ];
 
 export function AppNav() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { user, isAuthenticated, hasRole, logout } = useAuth();
+  const visibleNavItems = navItems.filter((item) => !item.roles || item.roles.some((role) => hasRole(role)));
 
   return (
     <>
@@ -84,7 +90,7 @@ export function AppNav() {
           </div>
 
           <div className="space-y-2">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const isActive = pathname === item.href || (pathname === "/" && item.href === "/live");
               const ItemIcon = item.icon;
 
@@ -112,8 +118,35 @@ export function AppNav() {
             })}
           </div>
 
-          <div className={`mt-auto overflow-hidden truncate whitespace-nowrap text-nowrap rounded-lg border border-soc-outline/60 bg-soc-lowest/45 p-3 font-mono text-[10px] uppercase tracking-[0.14em] text-soc-muted transition-[max-height,opacity,padding,border-color] duration-300 ${isCollapsed ? "lg:max-h-0 lg:border-transparent lg:p-0 lg:opacity-0" : "lg:max-h-16 lg:opacity-100"}`}>
-            Live buffer / Redis PubSub
+          <div className={`mt-auto space-y-2 overflow-hidden transition-[max-height,opacity,padding,border-color] duration-300 ${isCollapsed ? "lg:max-h-0 lg:opacity-0" : "lg:max-h-40 lg:opacity-100"}`}>
+            {isAuthenticated && user ? (
+              <div className="rounded-lg border border-soc-outline/60 bg-soc-lowest/45 p-3">
+                <div className="truncate whitespace-nowrap text-nowrap font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-soc-primary">{user.username}</div>
+                <div className="mt-1 truncate whitespace-nowrap text-nowrap text-xs text-soc-muted">{user.roles.join(" · ")}</div>
+                <button
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-soc-outline/70 bg-soc-low px-3 py-2 text-xs font-bold text-soc-muted transition hover:border-soc-danger/45 hover:text-white"
+                  onClick={() => {
+                    void logout();
+                    setIsOpen(false);
+                  }}
+                  type="button"
+                >
+                  <IconLogout size={15} stroke={1.8} />
+                  Cerrar sesión
+                </button>
+              </div>
+            ) : (
+              <Link
+                className="block rounded-lg border border-soc-primary/45 bg-soc-blue/20 p-3 text-center text-xs font-black uppercase tracking-[0.12em] text-white transition hover:bg-soc-blue/30"
+                href="/login"
+                onClick={() => setIsOpen(false)}
+              >
+                Iniciar sesión
+              </Link>
+            )}
+            <div className="truncate whitespace-nowrap text-nowrap rounded-lg border border-soc-outline/60 bg-soc-lowest/45 p-3 font-mono text-[10px] uppercase tracking-[0.14em] text-soc-muted">
+              Live buffer / Redis PubSub
+            </div>
           </div>
         </nav>
       </aside>
