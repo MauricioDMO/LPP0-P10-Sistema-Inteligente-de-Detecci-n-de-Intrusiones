@@ -3,14 +3,21 @@
 import { AnalyticsShell, AnalyticsState } from "@/features/analytics/components/AnalyticsShell";
 import { useAnalytics } from "@/features/analytics/hooks/useAnalytics";
 import { GeoMap } from "@/shared/components/maps/GeoMap";
-import type { GeoAnalytics, TimeRangeHours } from "@/types/analytics";
+import { useState } from "react";
+import type { GeoAnalytics, GeoDirection, GeoEventType, TimeRangeHours } from "@/types/analytics";
 
 type HistoricalGeoPanelProps = {
   hours: TimeRangeHours;
 };
 
 export function HistoricalGeoPanel({ hours }: HistoricalGeoPanelProps) {
-  const { data, loading, error } = useAnalytics<GeoAnalytics>(`/api/analytics/geo?hours=${hours}`);
+  const [direction, setDirection] = useState<GeoDirection>("both");
+  const [eventType, setEventType] = useState<GeoEventType>("all");
+  const [onlyBlocked, setOnlyBlocked] = useState(false);
+  const [onlyMalicious, setOnlyMalicious] = useState(false);
+  const [minCount, setMinCount] = useState(1);
+  const query = `/api/analytics/geo?hours=${hours}&direction=${direction}&event_type=${eventType}&only_blocked=${onlyBlocked}&only_malicious=${onlyMalicious}&min_count=${minCount}`;
+  const { data, loading, error } = useAnalytics<GeoAnalytics>(query);
   const points = data?.points ?? [];
   const topPoint = points[0];
   const coverage = data?.total_events ? Math.round(((data.geolocated_observations ?? 0) / data.total_events) * 100) : 0;
@@ -20,6 +27,18 @@ export function HistoricalGeoPanel({ hours }: HistoricalGeoPanelProps) {
 
   return (
     <div className="grid grid-cols-1 gap-3">
+      <GeoFilters
+        direction={direction}
+        eventType={eventType}
+        minCount={minCount}
+        onlyBlocked={onlyBlocked}
+        onlyMalicious={onlyMalicious}
+        setDirection={setDirection}
+        setEventType={setEventType}
+        setMinCount={setMinCount}
+        setOnlyBlocked={setOnlyBlocked}
+        setOnlyMalicious={setOnlyMalicious}
+      />
       <div className="space-y-3">
         {!loading && !error && data ? (
           <GeoSummary
@@ -35,7 +54,7 @@ export function HistoricalGeoPanel({ hours }: HistoricalGeoPanelProps) {
         ) : null}
         <AnalyticsState loading={loading} error={error} empty={points.length === 0} />
         {!loading && !error && points.length > 0 ? (
-          <GeoMap mode="heatmap" points={points} title="Mapa de calor histórico" subtitle={`${points.length} zonas / ${data?.geolocated_observations ?? 0} observaciones / ${data?.total_events ?? 0} eventos`} />
+          <GeoMap mode="heatmap" points={points} title="Mapa de calor histórico" subtitle={`${points.length} zonas / ${data?.geolocated_observations ?? 0} observaciones / ${data?.total_events ?? 0} eventos del periodo`} />
         ) : null}
       </div>
       <AnalyticsShell eyebrow="Geo rankings" title="Concentración geográfica">
@@ -52,6 +71,67 @@ export function HistoricalGeoPanel({ hours }: HistoricalGeoPanelProps) {
         ) : null}
       </AnalyticsShell>
     </div>
+  );
+}
+
+function GeoFilters({
+  direction,
+  eventType,
+  minCount,
+  onlyBlocked,
+  onlyMalicious,
+  setDirection,
+  setEventType,
+  setMinCount,
+  setOnlyBlocked,
+  setOnlyMalicious,
+}: {
+  direction: GeoDirection;
+  eventType: GeoEventType;
+  minCount: number;
+  onlyBlocked: boolean;
+  onlyMalicious: boolean;
+  setDirection: (value: GeoDirection) => void;
+  setEventType: (value: GeoEventType) => void;
+  setMinCount: (value: number) => void;
+  setOnlyBlocked: (value: boolean) => void;
+  setOnlyMalicious: (value: boolean) => void;
+}) {
+  return (
+    <AnalyticsShell eyebrow="Filtros geo" title="Agregación enriquecida del periodo">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+        <label className="space-y-2 text-xs font-bold uppercase tracking-[0.1em] text-soc-muted">
+          Dirección
+          <select className="w-full rounded border border-soc-outline bg-soc-lowest px-3 py-2 text-sm normal-case tracking-normal text-white" value={direction} onChange={(event) => setDirection(event.target.value as GeoDirection)}>
+            <option value="both">Origen y destino</option>
+            <option value="source">Origen</option>
+            <option value="destination">Destino</option>
+          </select>
+        </label>
+        <label className="space-y-2 text-xs font-bold uppercase tracking-[0.1em] text-soc-muted">
+          Tipo
+          <select className="w-full rounded border border-soc-outline bg-soc-lowest px-3 py-2 text-sm normal-case tracking-normal text-white" value={eventType} onChange={(event) => setEventType(event.target.value as GeoEventType)}>
+            <option value="all">Todos</option>
+            <option value="alert">Alertas</option>
+            <option value="dns">DNS</option>
+            <option value="http">HTTP</option>
+            <option value="tls">TLS</option>
+          </select>
+        </label>
+        <label className="space-y-2 text-xs font-bold uppercase tracking-[0.1em] text-soc-muted">
+          Mín. eventos
+          <input className="w-full rounded border border-soc-outline bg-soc-lowest px-3 py-2 text-sm normal-case tracking-normal text-white" min={1} type="number" value={minCount} onChange={(event) => setMinCount(Math.max(1, Number(event.target.value) || 1))} />
+        </label>
+        <label className="flex items-center gap-2 rounded border border-soc-outline bg-soc-lowest px-3 py-2 text-xs font-bold uppercase tracking-[0.1em] text-soc-muted">
+          <input checked={onlyBlocked} className="accent-soc-warning" type="checkbox" onChange={(event) => setOnlyBlocked(event.target.checked)} />
+          Solo bloqueos
+        </label>
+        <label className="flex items-center gap-2 rounded border border-soc-outline bg-soc-lowest px-3 py-2 text-xs font-bold uppercase tracking-[0.1em] text-soc-muted">
+          <input checked={onlyMalicious} className="accent-soc-danger" type="checkbox" onChange={(event) => setOnlyMalicious(event.target.checked)} />
+          Solo maliciosos
+        </label>
+      </div>
+    </AnalyticsShell>
   );
 }
 

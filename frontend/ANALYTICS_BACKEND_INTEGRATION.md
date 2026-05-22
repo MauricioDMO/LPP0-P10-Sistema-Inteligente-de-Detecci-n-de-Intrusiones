@@ -164,18 +164,32 @@ Uso en frontend:
 - Muestra total, reglas mas bloqueadas e IPs involucradas.
 - Sirve como evidencia directa de funcionamiento IPS.
 
-### `GET /api/analytics/geo?hours=24&sample_size=200`
+### `GET /api/analytics/geo?hours=24&direction=both&event_type=all&min_count=1`
 
 Uso: mapa historico y rankings geograficos.
 
-Importante: este endpoint toma una muestra de eventos recientes y los enriquece en el backend, porque `_geo` se calcula al leer y puede no estar persistido en Elasticsearch.
+Importante: este endpoint consulta `suricata-enriched-*` y agrega todos los documentos enriquecidos del periodo seleccionado. No usa muestras recientes ni vuelve a enriquecer eventos crudos.
+
+Filtros soportados:
+
+- `direction=source|destination|both`
+- `event_type=all|alert|dns|http|tls`
+- `only_blocked=true|false`
+- `only_malicious=true|false`
+- `min_count=1`
 
 Respuesta esperada:
 
 ```json
 {
   "hours": 24,
-  "sample_size": 200,
+  "direction": "both",
+  "event_type": "all",
+  "only_blocked": false,
+  "only_malicious": false,
+  "min_count": 1,
+  "total_events": 120,
+  "geolocated_observations": 80,
   "countries": [{ "country": "United States", "count": 30 }],
   "cities": [{ "city": "Lima", "count": 10 }],
   "isps": [{ "isp": "Example ISP", "count": 8 }],
@@ -195,7 +209,7 @@ Respuesta esperada:
 Uso en frontend:
 
 - Vista `/geo` mediante `HistoricalGeoPanel`.
-- Usa puntos historicos agregados y rankings de paises, ciudades e ISPs.
+- Usa puntos historicos agregados y rankings de paises, ciudades e ISPs desde el indice enriquecido.
 
 ## Patron de consumo
 

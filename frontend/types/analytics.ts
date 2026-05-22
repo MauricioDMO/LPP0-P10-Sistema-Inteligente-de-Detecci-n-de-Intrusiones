@@ -83,8 +83,17 @@ export type HistoricalGeoPoint = {
   count: number;
 };
 
+export type GeoDirection = "source" | "destination" | "both";
+
+export type GeoEventType = "all" | "alert" | "dns" | "http" | "tls";
+
 export type GeoAnalytics = {
   hours: number;
+  direction: GeoDirection;
+  event_type: GeoEventType;
+  only_blocked: boolean;
+  only_malicious: boolean;
+  min_count: number;
   total_events: number;
   geolocated_observations: number;
   countries: Array<{ country: string; count: number }>;
