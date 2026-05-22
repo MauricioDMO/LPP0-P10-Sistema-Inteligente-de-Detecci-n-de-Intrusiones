@@ -1,0 +1,4 @@
+pipeline.workers: 2
+pipeline.batch.size: 50
+pipeline.batch.delay: 5
+queue.type: memory

@@ -26,20 +26,6 @@ services:
       retries: 20
     restart: unless-stopped
 
-  kibana:
-    build:
-      context: ./kibana
-      args:
-        STACK_VERSION: ${STACK_VERSION}
-    container_name: kibana
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    environment:
-      SERVER_HOST: 0.0.0.0
-    ports:
-      - "5601:5601"
-    restart: unless-stopped
 
   suricata:
     build:
@@ -51,9 +37,8 @@ services:
       - NET_ADMIN
       - NET_RAW
     environment:
-      SURICATA_MODE: ${SURICATA_MODE:-local-ips}
+      SURICATA_MODE: ${SURICATA_MODE}
       SURICATA_INTERFACE: ${SURICATA_INTERFACE}
-      SURICATA_NFQUEUE_NUM: ${SURICATA_NFQUEUE_NUM:-0}
     volumes:
       - ./suricata/config/suricata.yaml:/etc/suricata/suricata.yaml:ro
       - ./suricata/config/classification.config:/etc/suricata/classification.config:ro
@@ -81,6 +66,7 @@ services:
         condition: service_healthy
     volumes:
       - ./logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - ./logstash/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
     environment:
       - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
     restart: unless-stopped
@@ -103,6 +89,56 @@ services:
       - suricata-logs:/var/log/suricata:ro
       - filebeat-data:/usr/share/filebeat/data
     command: [ "filebeat", "-e", "--strict.perms=false" ]
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    container_name: backend
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    environment:
+      BACKEND_REDIS_HOST: redis
+      BACKEND_REDIS_PORT: 6379
+      BACKEND_REDIS_DB: 0
+      BACKEND_REDIS_CHANNEL: suricata
+      BACKEND_ELASTICSEARCH_HOST: elasticsearch
+      BACKEND_ELASTICSEARCH_PORT: 9200
+      BACKEND_ELASTICSEARCH_SCHEME: http
+      BACKEND_ELASTICSEARCH_INDEX: suricata-*
+      BACKEND_ELASTICSEARCH_ENRICHED_INDEX: ${BACKEND_ELASTICSEARCH_ENRICHED_INDEX:-suricata-enriched-*}
+      BACKEND_ELASTICSEARCH_ENRICHED_WRITE_INDEX: ${BACKEND_ELASTICSEARCH_ENRICHED_WRITE_INDEX:-suricata-enriched}
+      BACKEND_ENRICHED_INDEX_ENABLED: ${BACKEND_ENRICHED_INDEX_ENABLED:-true}
+      BACKEND_API_HOST: 0.0.0.0
+      BACKEND_API_PORT: 8000
+      BACKEND_API_TITLE: Suricata Backend API
+      BACKEND_API_VERSION: 1.0.0
+      BACKEND_TELEGRAM_BOT_TOKEN: ${BACKEND_TELEGRAM_BOT_TOKEN:-}
+      BACKEND_TELEGRAM_CHAT_ID: ${BACKEND_TELEGRAM_CHAT_ID:-}
+      BACKEND_ABUSEIPDB_KEY: ${BACKEND_ABUSEIPDB_KEY:-}
+      BACKEND_GEOIP_DB_PATH: ${BACKEND_GEOIP_DB_PATH:-/data/GeoLite2-City.mmdb}
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:8000/ws}
+    container_name: frontend
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:8000/ws}
     restart: unless-stopped
 
 volumes:

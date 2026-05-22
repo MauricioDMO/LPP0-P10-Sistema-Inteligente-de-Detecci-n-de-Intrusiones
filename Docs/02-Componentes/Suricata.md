@@ -1,93 +1,103 @@
 # Suricata
 
-## Que es
+Suricata es el motor IDS/IPS del proyecto. Inspecciona trafico de red, aplica reglas y genera eventos estructurados en formato EVE JSON.
 
-Suricata es un IDS/IPS y motor de Network Security Monitoring. Inspecciona trafico de red y genera eventos estructurados (EVE JSON) que luego pueden analizarse en plataformas como Elastic.
+## Rol en el proyecto
 
-## Por que se usa en este proyecto
+- Captura o intercepta trafico del host.
+- Genera `/var/log/suricata/eve.json`.
+- Aplica reglas locales para alertar o bloquear trafico.
+- Entrega los eventos a Filebeat mediante el volumen `suricata-logs`.
 
-- Permite capturar y clasificar eventos de red en tiempo real.
-- Genera salida JSON estandar para pipelines de observabilidad.
-- Tiene ecosistema maduro de reglas y eventos por protocolo.
+## Configuracion real
 
-## Como esta configurado aqui
+Archivos principales:
 
-### Contenedor
+- `suricata/Dockerfile`: parte de `jasonish/suricata:latest` e instala `iptables-nft` para modo IPS con NFQUEUE.
+- `suricata/entrypoint.sh`: decide si arranca en modo `ips` o `ids`.
+- `suricata/config/suricata.yaml`: configuracion principal.
+- `suricata/config/rules/suricata.rules`: reglas locales base.
+- `suricata/config/rules/youtube-block.rules`: reglas de bloqueo/deteccion para YouTube.
+- `suricata/config/rules/adult-block.rules`: reglas de bloqueo/deteccion para sitios adultos.
 
-- Imagen base: Debian 12 con paquete Suricata instalado.
-- Arranque via `entrypoint.sh`.
-- Ejecucion con `network_mode: host`, `privileged: true`, `NET_ADMIN` y `NET_RAW`.
+Compose ejecuta Suricata con:
 
-### Interfaz de captura
+- `network_mode: host`
+- `privileged: true`
+- capacidades `NET_ADMIN` y `NET_RAW`
+- volumen `suricata-logs:/var/log/suricata`
 
-En modo `ids`, se toma de la variable `SURICATA_INTERFACE` en `.env`.
+## Modos de ejecucion
 
-Soporta una o varias interfaces separadas por coma.
+Modo IPS por defecto:
 
-Ejemplos:
-
-- Una interfaz: `SURICATA_INTERFACE=wlp0s20f3`
-- Varias interfaces: `SURICATA_INTERFACE=wlp0s20f3,zttqhrw6r3`
-- En este host, las interfaces visibles son `wlp0s20f3`, `zttqhrw6r3`, `zttqh2xyhk` y `virbr0`.
-
-Si vas a inspeccionar trafico real de la tarjeta Wi-Fi, `wlp0s20f3` debe ser la interfaz principal.
-
-En modo `local-ips`, Suricata no usa `SURICATA_INTERFACE`; el contenedor engancha `NFQUEUE` en `OUTPUT` para que las reglas `drop` o `reject` bloqueen trafico generado por el host/VM.
-
-En modo `gateway-ips`, el contenedor no modifica iptables. La VM Debian configura NAT y reglas `NFQUEUE` en `FORWARD`, y Suricata solo escucha la cola con `-q`.
-
-El modo de ejecucion se controla con `SURICATA_MODE`:
-
-- `SURICATA_MODE=ids` para captura pasiva en una o varias interfaces.
-- `SURICATA_MODE=local-ips` para conservar el IPS local actual con `NFQUEUE` en `OUTPUT`.
-- `SURICATA_MODE=gateway-ips` para gateway L3 con `NFQUEUE` en `FORWARD` configurado por scripts del host.
-
-`SURICATA_MODE=ips` se acepta como alias heredado de `local-ips`.
-
-En modo `ids`, el `entrypoint.sh` transforma ese valor en multiples flags de Suricata:
-
-- `-i wlp0s20f3 -i zttqhrw6r3`
-
-### Configuracion principal
-
-Archivo: `suricata/config/suricata.yaml`
-
-Puntos clave:
-
-- `default-log-dir: /var/log/suricata/`
-- `eve-log` habilitado con archivo `eve.json`
-- tipos de eventos extendidos (alert, frame, anomaly, http y otros segun config)
-- `default-rule-path: /var/lib/suricata/rules`
-- `rule-files` incluye `suricata.rules`
-
-### Regla local de validacion
-
-Archivo: `suricata/config/rules/suricata.rules`
-
-```text
-alert icmp any any -> any any (msg:"PING detectado"; sid:1000001; rev:1;)
+```env
+SURICATA_MODE=ips
 ```
 
-Esta regla permite validar facilmente el flujo generando trafico ICMP.
+En IPS, el entrypoint agrega reglas `NFQUEUE` en `OUTPUT` y `FORWARD` para IPv4 e IPv6 y ejecuta Suricata con `-q 0`. Este modo permite que reglas `reject` o `drop` bloqueen trafico.
 
-## Flujo de datos que produce
+Modo IDS opcional:
 
-1. Captura paquetes en la interfaz del host.
-2. Aplica decodificacion y reglas.
-3. Escribe eventos en `/var/log/suricata/eve.json`.
-4. Filebeat lee ese archivo desde el volumen compartido.
+```env
+SURICATA_MODE=ids
+SURICATA_INTERFACE=wlp0s20f3
+```
 
-## Buenas practicas
+En IDS, Suricata captura pasivamente desde una o varias interfaces separadas por coma:
 
-- Verificar interfaz antes de levantar (`ip -o link show`).
-- Mantener reglas versionadas y con `sid` unicos.
-- Separar reglas de laboratorio y reglas de produccion.
-- Revisar crecimiento de `eve.json` y rotacion de logs.
+```env
+SURICATA_INTERFACE=wlp0s20f3,virbr0
+```
 
-## Riesgos y limitaciones
+## Reglas locales
 
-- Requiere privilegios altos en contenedor.
-- Dependencia del host networking.
-- Sin ajuste fino de rendimiento para trafico alto.
-- Sin healthcheck propio en compose (se confia en restart policy).
-- En modo gateway, si Suricata no esta escuchando la cola y las reglas `NFQUEUE` siguen activas, el trafico de clientes puede quedar bloqueado hasta ejecutar `suricata-gateway-cleanup` o `unmount.sh`.
+Directorio: `suricata/config/rules/`
+
+Reglas actuales:
+
+- alerta ICMP para validar `ping`.
+- bloqueo de `example.com` por TLS SNI.
+- bloqueo de `example.com` por DNS.
+- bloqueo de `example.com` por HTTP host.
+- bloqueo/deteccion de YouTube y YouTube Music por TLS, HTTP y DNS.
+- bloqueo/deteccion de sitios adultos por TLS, HTTP y DNS.
+- bloqueo UDP/443 para reducir evasión por QUIC/HTTP3 en sitios adultos.
+
+Los archivos cargados por `suricata/config/suricata.yaml` son:
+
+```yaml
+rule-files:
+  - suricata.rules
+  - youtube-block.rules
+  - adult-block.rules
+```
+
+## Validacion rapida
+
+Ver logs:
+
+```bash
+docker compose logs --tail=100 suricata
+```
+
+Generar trafico:
+
+```bash
+ping -c 4 8.8.8.8
+curl http://neverssl.com
+curl http://example.com
+```
+
+Confirmar que el flujo llega a Elasticsearch:
+
+```bash
+curl http://localhost:9200/_cat/indices?v
+```
+
+## Riesgos
+
+- Requiere privilegios elevados.
+- En modo IPS modifica reglas `iptables`/`ip6tables` en `OUTPUT` y `FORWARD` mientras el contenedor esta activo.
+- En modo IDS depende de que `SURICATA_INTERFACE` exista en el host.
+- No tiene healthcheck propio en Compose.

@@ -1,0 +1,30 @@
+# Reglas para bloquear YouTube y YouTube Music
+# Detecta y bloquea tráfico TLS hacia youtube.com y music.youtube.com
+# Detecta y bloquea requests HTTP hacia youtube.com y music.youtube.com
+
+# ===== HTTPS / TLS Rules =====
+# Bloquea conexiones TLS/SSL (HTTPS) a youtube.com
+reject tls $HOME_NET any -> $EXTERNAL_NET any (msg:"[BLOCKED] YouTube - TLS Connection Detected"; tls.sni; content:"youtube.com"; sid:1001001; rev:1; classtype:attempted-recon;)
+
+# Bloquea conexiones TLS/SSL (HTTPS) a music.youtube.com y sus subdominios
+reject tls $HOME_NET any -> $EXTERNAL_NET any (msg:"[BLOCKED] YouTube Music - TLS Connection Detected"; tls.sni; content:"music.youtube.com"; sid:1001002; rev:1; classtype:attempted-recon;)
+
+# Bloquea m.youtube.com (versión móvil)
+reject tls $HOME_NET any -> $EXTERNAL_NET any (msg:"[BLOCKED] YouTube Mobile - TLS Connection Detected"; tls.sni; content:"m.youtube.com"; sid:1001003; rev:1; classtype:attempted-recon;)
+
+# ===== HTTP Rules =====
+# Bloquea requests HTTP a youtube.com
+reject http $HOME_NET any -> $EXTERNAL_NET any (msg:"[BLOCKED] YouTube - HTTP Request Detected"; http.host; content:"youtube.com"; sid:1001004; rev:1; classtype:attempted-recon;)
+
+# Bloquea requests HTTP a music.youtube.com
+reject http $HOME_NET any -> $EXTERNAL_NET any (msg:"[BLOCKED] YouTube Music - HTTP Request Detected"; http.host; content:"music.youtube.com"; sid:1001005; rev:1; classtype:attempted-recon;)
+
+# Bloquea requests HTTP a m.youtube.com (móvil)
+reject http $HOME_NET any -> $EXTERNAL_NET any (msg:"[BLOCKED] YouTube Mobile - HTTP Request Detected"; http.host; content:"m.youtube.com"; sid:1001006; rev:1; classtype:attempted-recon;)
+
+# ===== DNS Rules (Opcional - alerta en lugar de drop) =====
+# Detecta intentos de resolución DNS a youtube.com
+alert dns $HOME_NET any -> any any (msg:"DNS Query: youtube.com"; dns.query; content:"youtube.com"; sid:1001007; rev:1; classtype:attempted-recon;)
+
+# Detecta intentos de resolución DNS a music.youtube.com
+alert dns $HOME_NET any -> any any (msg:"DNS Query: music.youtube.com"; dns.query; content:"music.youtube.com"; sid:1001008; rev:1; classtype:attempted-recon;)

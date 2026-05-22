@@ -2,3 +2,8 @@
   eve:
     enabled: true
     var.paths: ["/var/log/suricata/eve.json"]
+    input:
+      scan_frequency: 1s
+      close_inactive: 10m
+      backoff: 1s
+      max_backoff: 1s

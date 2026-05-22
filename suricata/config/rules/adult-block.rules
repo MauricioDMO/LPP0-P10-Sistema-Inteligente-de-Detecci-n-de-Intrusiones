@@ -1,0 +1,55 @@
+# Reglas para bloquear sitios web para adultos
+# Detecta y bloquea tráfico TLS, HTTP y DNS hacia sitios adultos.
+# UDP/443 se bloquea para evitar QUIC/HTTP3, que puede ocultar el SNI TLS clásico.
+
+reject udp any any -> any 443 (msg:"[BLOQUEO] QUIC/HTTP3 UDP 443"; sid:2001999; rev:1; classtype:policy-violation;)
+
+# ===== Pornhub =====
+reject tls any any -> any any (msg:"[BLOQUEO] Pornhub - TLS"; tls.sni; content:"pornhub.com"; nocase; sid:2001001; rev:2; classtype:policy-violation;)
+reject tcp any any -> any 80 (msg:"[BLOQUEO] Pornhub - HTTP"; flow:established,to_server; http.host; content:"pornhub.com"; sid:2001002; rev:2; classtype:policy-violation;)
+reject dns any any -> any any (msg:"[BLOQUEO] Pornhub - DNS"; dns.query; content:"pornhub.com"; nocase; sid:2001003; rev:4; classtype:policy-violation;)
+
+# ===== XVideos =====
+reject tls any any -> any any (msg:"[BLOQUEO] XVideos - TLS"; tls.sni; content:"xvideos.com"; nocase; sid:2001004; rev:2; classtype:policy-violation;)
+reject tcp any any -> any 80 (msg:"[BLOQUEO] XVideos - HTTP"; flow:established,to_server; http.host; content:"xvideos.com"; sid:2001005; rev:2; classtype:policy-violation;)
+reject dns any any -> any any (msg:"[BLOQUEO] XVideos - DNS"; dns.query; content:"xvideos.com"; nocase; sid:2001006; rev:4; classtype:policy-violation;)
+
+# ===== XNXX =====
+reject tls any any -> any any (msg:"[BLOQUEO] XNXX - TLS"; tls.sni; content:"xnxx.com"; nocase; sid:2001007; rev:2; classtype:policy-violation;)
+reject tcp any any -> any 80 (msg:"[BLOQUEO] XNXX - HTTP"; flow:established,to_server; http.host; content:"xnxx.com"; sid:2001008; rev:2; classtype:policy-violation;)
+reject dns any any -> any any (msg:"[BLOQUEO] XNXX - DNS"; dns.query; content:"xnxx.com"; nocase; sid:2001009; rev:4; classtype:policy-violation;)
+
+# ===== XHamster =====
+reject tls any any -> any any (msg:"[BLOQUEO] XHamster - TLS"; tls.sni; content:"xhamster.com"; nocase; sid:2001010; rev:2; classtype:policy-violation;)
+reject tcp any any -> any 80 (msg:"[BLOQUEO] XHamster - HTTP"; flow:established,to_server; http.host; content:"xhamster.com"; sid:2001011; rev:2; classtype:policy-violation;)
+reject dns any any -> any any (msg:"[BLOQUEO] XHamster - DNS"; dns.query; content:"xhamster.com"; nocase; sid:2001012; rev:4; classtype:policy-violation;)
+
+# ===== RedTube =====
+reject tls any any -> any any (msg:"[BLOQUEO] RedTube - TLS"; tls.sni; content:"redtube.com"; nocase; sid:2001013; rev:2; classtype:policy-violation;)
+reject tcp any any -> any 80 (msg:"[BLOQUEO] RedTube - HTTP"; flow:established,to_server; http.host; content:"redtube.com"; sid:2001014; rev:2; classtype:policy-violation;)
+reject dns any any -> any any (msg:"[BLOQUEO] RedTube - DNS"; dns.query; content:"redtube.com"; nocase; sid:2001015; rev:4; classtype:policy-violation;)
+
+# ===== YouPorn =====
+reject tls any any -> any any (msg:"[BLOQUEO] YouPorn - TLS"; tls.sni; content:"youporn.com"; nocase; sid:2001016; rev:2; classtype:policy-violation;)
+reject tcp any any -> any 80 (msg:"[BLOQUEO] YouPorn - HTTP"; flow:established,to_server; http.host; content:"youporn.com"; sid:2001017; rev:2; classtype:policy-violation;)
+reject dns any any -> any any (msg:"[BLOQUEO] YouPorn - DNS"; dns.query; content:"youporn.com"; nocase; sid:2001018; rev:4; classtype:policy-violation;)
+
+# ===== Tube8 =====
+reject tls any any -> any any (msg:"[BLOQUEO] Tube8 - TLS"; tls.sni; content:"tube8.com"; nocase; sid:2001019; rev:2; classtype:policy-violation;)
+reject tcp any any -> any 80 (msg:"[BLOQUEO] Tube8 - HTTP"; flow:established,to_server; http.host; content:"tube8.com"; sid:2001020; rev:2; classtype:policy-violation;)
+reject dns any any -> any any (msg:"[BLOQUEO] Tube8 - DNS"; dns.query; content:"tube8.com"; nocase; sid:2001021; rev:4; classtype:policy-violation;)
+
+# ===== SpankWire =====
+reject tls any any -> any any (msg:"[BLOQUEO] SpankWire - TLS"; tls.sni; content:"spankwire.com"; nocase; sid:2001022; rev:2; classtype:policy-violation;)
+reject tcp any any -> any 80 (msg:"[BLOQUEO] SpankWire - HTTP"; flow:established,to_server; http.host; content:"spankwire.com"; sid:2001023; rev:2; classtype:policy-violation;)
+reject dns any any -> any any (msg:"[BLOQUEO] SpankWire - DNS"; dns.query; content:"spankwire.com"; nocase; sid:2001024; rev:4; classtype:policy-violation;)
+
+# ===== KeezMovies =====
+reject tls any any -> any any (msg:"[BLOQUEO] KeezMovies - TLS"; tls.sni; content:"keezmovies.com"; nocase; sid:2001025; rev:2; classtype:policy-violation;)
+reject tcp any any -> any 80 (msg:"[BLOQUEO] KeezMovies - HTTP"; flow:established,to_server; http.host; content:"keezmovies.com"; sid:2001026; rev:2; classtype:policy-violation;)
+reject dns any any -> any any (msg:"[BLOQUEO] KeezMovies - DNS"; dns.query; content:"keezmovies.com"; nocase; sid:2001027; rev:4; classtype:policy-violation;)
+
+# ===== Motherless =====
+reject tls any any -> any any (msg:"[BLOQUEO] Motherless - TLS"; tls.sni; content:"motherless.com"; nocase; sid:2001028; rev:2; classtype:policy-violation;)
+reject tcp any any -> any 80 (msg:"[BLOQUEO] Motherless - HTTP"; flow:established,to_server; http.host; content:"motherless.com"; sid:2001029; rev:2; classtype:policy-violation;)
+reject dns any any -> any any (msg:"[BLOQUEO] Motherless - DNS"; dns.query; content:"motherless.com"; nocase; sid:2001030; rev:4; classtype:policy-violation;)

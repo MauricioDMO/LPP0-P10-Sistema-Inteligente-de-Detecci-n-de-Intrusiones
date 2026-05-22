@@ -6,8 +6,11 @@ El flujo del proyecto es:
 
 1. Suricata captura trafico de red y genera eventos EVE JSON.
 2. Filebeat ingiere esos eventos.
-3. Elasticsearch indexa los documentos.
-4. Kibana permite exploracion y visualizacion.
+3. Logstash distribuye los eventos hacia Elasticsearch y Redis Pub/Sub.
+4. Elasticsearch indexa los documentos historicos.
+5. El backend FastAPI consulta historico y retransmite eventos realtime por WebSocket.
+6. El backend enriquece eventos con DNS reverso, GeoIP y AbuseIPDB, y puede notificar por Telegram.
+7. El frontend Next.js muestra dashboards en vivo e historicos con graficas, mapa, filtros, rankings y exportacion CSV.
 
 ## Integrantes
 
@@ -17,8 +20,10 @@ Ver listado completo en [Integrantes.md](Integrantes.md).
 
 - `suricata/`: contenedor, configuracion y reglas de Suricata.
 - `filebeat/`: configuracion de ingestion de logs.
+- `logstash/`: distribucion de eventos hacia Elasticsearch y Redis.
 - `elasticsearch/`: configuracion del nodo Elasticsearch.
-- `kibana/`: configuracion de Kibana.
+- `backend/`: API FastAPI, WebSocket, enriquecimiento y notificaciones.
+- `frontend/`: dashboard Next.js que consume la API REST/WebSocket del backend.
 - `Docs/`: documentacion tecnica y operativa agrupada.
 
 ## Prerequisitos
@@ -39,16 +44,15 @@ Configurar el archivo `.env` (o copiar desde `.env.example`):
 
 ```env
 STACK_VERSION=8.19.14
-SURICATA_MODE=local-ips
-SURICATA_NFQUEUE_NUM=0
+SURICATA_MODE=ips
 SURICATA_INTERFACE=wlp0s20f3
+BACKEND_TELEGRAM_BOT_TOKEN=
+BACKEND_TELEGRAM_CHAT_ID=
+BACKEND_ABUSEIPDB_KEY=
+BACKEND_GEOIP_DB_PATH=/data/GeoLite2-City.mmdb
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
 ```
-
-Modos soportados por Suricata:
-
-- `local-ips`: modo actual; inspecciona trafico generado por el host/VM usando NFQUEUE en `OUTPUT`.
-- `ids`: captura pasiva en `SURICATA_INTERFACE`.
-- `gateway-ips`: para VM gateway; Suricata escucha NFQUEUE y las reglas de red viven en el host Debian.
 
 ## Levantamiento en desarrollo
 
@@ -56,7 +60,6 @@ Modos soportados por Suricata:
 docker compose config
 docker compose build
 docker compose up -d
-docker compose run --rm filebeat filebeat setup -e --strict.perms=false
 ```
 
 Ver estado y logs:
@@ -66,11 +69,22 @@ docker compose ps
 docker compose logs -f suricata
 docker compose logs -f filebeat
 curl http://localhost:9200/_cat/indices?v
+curl http://localhost:8000/api/events/health
 ```
 
-Kibana:
+Frontend:
 
-- http://localhost:5601
+- http://localhost:3000
+- Rutas principales: `/live`, `/historical`, `/blocked`, `/geo`, `/rankings`
+
+Endpoints utiles:
+
+```bash
+curl http://localhost:8000/api/events/latest?limit=3
+curl http://localhost:8000/api/events/stats?hours=24
+curl http://localhost:8000/api/analytics/overview?hours=24
+curl "http://localhost:8000/api/analytics/top-ips?hours=24&direction=source&size=5"
+```
 
 ## Levantamiento en produccion (basico)
 
@@ -78,14 +92,7 @@ Kibana:
 docker compose -f docker-compose.prod.yml config
 docker compose -f docker-compose.prod.yml build
 docker compose -f docker-compose.prod.yml up -d
-docker compose -f docker-compose.prod.yml run --rm filebeat filebeat setup -e --strict.perms=false
 ```
-
-## Levantamiento en modo gateway
-
-El modo gateway usa `docker-compose.gateway.yml` y scripts en `scripts/gateway/`. Esta preparado para una VM Debian con dos interfaces: WAN hacia la red externa y LAN hacia el AP.
-
-Ver guia: [Docs/03-Operacion/Levantamiento-Gateway.md](Docs/03-Operacion/Levantamiento-Gateway.md)
 
 ## Documentacion
 
@@ -94,15 +101,16 @@ Indice general: [Docs/README.md](Docs/README.md)
 Documentos agrupados:
 
 - Arquitectura: [Docs/01-Arquitectura/Arquitectura.md](Docs/01-Arquitectura/Arquitectura.md)
+- Flujo y backend: [Docs/01-Arquitectura/Flujo-y-Backend.md](Docs/01-Arquitectura/Flujo-y-Backend.md)
 - Componentes:
   - [Docs/02-Componentes/Suricata.md](Docs/02-Componentes/Suricata.md)
   - [Docs/02-Componentes/Filebeat.md](Docs/02-Componentes/Filebeat.md)
   - [Docs/02-Componentes/Elasticsearch.md](Docs/02-Componentes/Elasticsearch.md)
-  - [Docs/02-Componentes/Kibana.md](Docs/02-Componentes/Kibana.md)
+  - [Docs/02-Componentes/Redis.md](Docs/02-Componentes/Redis.md)
+  - [Docs/02-Componentes/Logstash.md](Docs/02-Componentes/Logstash.md)
 - Operacion:
   - [Docs/03-Operacion/Levantamiento-Desarrollo.md](Docs/03-Operacion/Levantamiento-Desarrollo.md)
   - [Docs/03-Operacion/Levantamiento-Produccion.md](Docs/03-Operacion/Levantamiento-Produccion.md)
-  - [Docs/03-Operacion/Levantamiento-Gateway.md](Docs/03-Operacion/Levantamiento-Gateway.md)
   - [Docs/03-Operacion/Inicio-y-Verificacion.md](Docs/03-Operacion/Inicio-y-Verificacion.md)
   - [Docs/03-Operacion/Troubleshooting.md](Docs/03-Operacion/Troubleshooting.md)
 - Entregables:

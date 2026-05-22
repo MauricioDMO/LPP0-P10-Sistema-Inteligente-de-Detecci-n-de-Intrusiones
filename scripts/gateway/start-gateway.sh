@@ -12,6 +12,8 @@ source "$ENV_FILE"
 
 export GATEWAY_LAN_IP="${LAN_IP:-192.168.50.1}"
 export SURICATA_NFQUEUE_NUM="${NFQUEUE_NUM:-0}"
+export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://${GATEWAY_LAN_IP}:8000}"
+export NEXT_PUBLIC_WS_URL="${NEXT_PUBLIC_WS_URL:-ws://${GATEWAY_LAN_IP}:8000/ws}"
 
 docker compose \
   -f "$PROJECT_DIR/docker-compose.gateway.yml" \

@@ -1,21 +1,16 @@
-FROM debian:12-slim
+FROM jasonish/suricata:latest
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends \
-  suricata \
-  iptables \
-  iproute2 \
-  iputils-ping \
-  ca-certificates \
-  curl \
-  procps \
-  libcap2-bin \
-  && rm -rf /var/lib/apt/lists/*
+# Install iptables for IPS mode (NFQUEUE)
+RUN dnf install -y iptables-nft && dnf clean all
 
+# Copy configuration and entrypoint
+COPY config/suricata.yaml /etc/suricata/suricata.yaml
+COPY config/classification.config /etc/suricata/classification.config
+COPY config/reference.config /etc/suricata/reference.config
+COPY config/threshold.config /etc/suricata/threshold.config
+COPY config/rules /var/lib/suricata/rules
 COPY entrypoint.sh /entrypoint.sh
 
-RUN chmod +x /entrypoint.sh \
-  && sed -i 's/\r$//' /entrypoint.sh \
-  && mkdir -p /var/log/suricata /var/lib/suricata/rules
+RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
