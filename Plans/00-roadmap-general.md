@@ -9,7 +9,7 @@ Evolucionar el proyecto Suricata desde un dashboard SOC/IPS de laboratorio hacia
 - [x] 1. Enriquecimiento persistente.
 - [x] 2. Cerrar enriquecimiento persistente y backfill historico.
 - [x] 3. Retencion Elasticsearch 1 ano y templates versionados.
-- [ ] 4. PostgreSQL + ORM + JWT.
+- [x] 4. PostgreSQL + ORM + JWT.
 - [ ] 5. Gestion Suricata por perfiles, fuentes, overrides y jobs.
 - [ ] 6. Listas negras y blancas sobre el motor de reglas gestionadas.
 - [ ] 7. Threat Intel gestionada en base de datos.
