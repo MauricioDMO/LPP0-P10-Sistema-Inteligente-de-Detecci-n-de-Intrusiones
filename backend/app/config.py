@@ -20,6 +20,28 @@ class Settings(BaseSettings):
     elasticsearch_enriched_write_index: str = "suricata-enriched"
     enriched_index_enabled: bool = True
 
+    # PostgreSQL
+    database_url: str = "postgresql+asyncpg://suricata:suricata@localhost:5432/suricata"
+
+    # JWT
+    jwt_secret: str = "change-me"
+    jwt_algorithm: str = "HS256"
+    jwt_expires_minutes: int = 480
+
+    # Session cookie
+    session_cookie_name: str = "suricata_session"
+    csrf_cookie_name: str = "suricata_csrf"
+    session_cookie_secure: bool = False
+    session_cookie_samesite: str = "lax"
+
+    # CORS
+    cors_allowed_origins: str = "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001"
+
+    # Bootstrap admin
+    initial_admin_username: str = "admin"
+    initial_admin_password: str = "admin123"
+    initial_admin_email: Optional[str] = "admin@local"
+
     # FastAPI
     api_host: str = "0.0.0.0"
     api_port: int = 8000
@@ -40,6 +62,10 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_prefix = "BACKEND_"
         case_sensitive = False
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
 
 
 settings = Settings()

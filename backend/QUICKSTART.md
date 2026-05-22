@@ -59,14 +59,7 @@ Debería retornar:
 
 ### 2. Ver eventos en tiempo real
 
-Opción A: Usar cliente Python de prueba:
-
-```bash
-# Desde otra terminal, en carpeta /backend
-python test_websocket.py
-```
-
-Opción B: Usar el frontend Next.js independiente en `../frontend`.
+Usa el frontend Next.js en `http://localhost:3000`. El WebSocket requiere sesion valida en cookie HttpOnly y `Origin` permitido por `BACKEND_CORS_ALLOWED_ORIGINS`.
 
 ### 3. Verificar que Redis está activo
 
@@ -90,9 +83,8 @@ curl http://example.com -I
 
 Si todo funciona, deberías ver eventos apareciendo en:
 
-1. Terminal de `test_websocket.py`
-2. Navegador con el frontend Next.js en http://localhost:3000
-3. `docker exec redis redis-cli SUBSCRIBE suricata`
+1. Navegador con el frontend Next.js en http://localhost:3000 despues de login.
+2. `docker exec redis redis-cli SUBSCRIBE suricata`.
 
 ### 5. Verificar histórico y analytics
 
@@ -100,12 +92,15 @@ Después de generar tráfico, Elasticsearch debe contener índices `suricata-*` 
 
 ```bash
 curl http://localhost:9200/_cat/indices?v
-curl http://localhost:8000/api/events/latest?limit=3
-curl http://localhost:8000/api/events/stats?hours=24
-curl http://localhost:8000/api/analytics/overview?hours=24
-curl "http://localhost:8000/api/analytics/timeline?hours=24&interval=5m"
-curl "http://localhost:8000/api/analytics/top-ips?hours=24&direction=source&size=5"
-curl http://localhost:8000/api/analytics/blocked?hours=24
+curl -c cookies.txt -b cookies.txt -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+curl -b cookies.txt http://localhost:8000/api/events/latest?limit=3
+curl -b cookies.txt http://localhost:8000/api/events/stats?hours=24
+curl -b cookies.txt http://localhost:8000/api/analytics/overview?hours=24
+curl -b cookies.txt "http://localhost:8000/api/analytics/timeline?hours=24&interval=5m"
+curl -b cookies.txt "http://localhost:8000/api/analytics/top-ips?hours=24&direction=source&size=5"
+curl -b cookies.txt http://localhost:8000/api/analytics/blocked?hours=24
 ```
 
 ## Producción con Docker
@@ -143,7 +138,7 @@ El backend soporta filtros por:
 Ejemplo con WebSocket:
 
 ```javascript
-// Conectar con filtro inicial
+// Requiere haber iniciado sesion para que el navegador envie suricata_session.
 const ws = new WebSocket(
   "ws://localhost:8000/ws?event_types=ALERT,SSH&min_severity=2"
 );

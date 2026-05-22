@@ -1,10 +1,15 @@
 """Endpoints de analisis historico sobre Elasticsearch."""
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from ..analytics import service
+from ..dependencies.auth import require_roles
 
-router = APIRouter(prefix="/api/analytics", tags=["analytics"])
+router = APIRouter(
+    prefix="/api/analytics",
+    tags=["analytics"],
+    dependencies=[Depends(require_roles("admin", "analyst", "viewer"))],
+)
 
 
 @router.get("/overview")
