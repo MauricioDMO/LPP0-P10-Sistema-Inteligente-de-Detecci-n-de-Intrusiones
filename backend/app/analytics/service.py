@@ -18,6 +18,21 @@ from .queries import (
 )
 
 
+def _geo_filters(
+    event_type: str = "all",
+    only_blocked: bool = False,
+    only_malicious: bool = False,
+) -> list[dict]:
+    filters = []
+    if event_type != "all":
+        filters.append({"term": {"suricata.eve.event_type": event_type}})
+    if only_blocked:
+        filters.append(blocked_signature_filter(keyword=False))
+    if only_malicious:
+        filters.append({"term": {"_threat.is_malicious": True}})
+    return filters
+
+
 async def get_overview(hours: int = 24) -> dict:
     resp = await es.search(
         index=settings.elasticsearch_index,
@@ -129,22 +144,45 @@ async def get_blocked(hours: int = 24, size: int = 10) -> dict:
     }
 
 
-async def get_geo(hours: int = 24) -> dict:
+async def get_geo(
+    hours: int = 24,
+    direction: str = "both",
+    event_type: str = "all",
+    only_blocked: bool = False,
+    only_malicious: bool = False,
+    min_count: int = 1,
+) -> dict:
+    empty_response = {
+        "hours": hours,
+        "direction": direction,
+        "event_type": event_type,
+        "only_blocked": only_blocked,
+        "only_malicious": only_malicious,
+        "min_count": min_count,
+        "total_events": 0,
+        "geolocated_observations": 0,
+        "countries": [],
+        "cities": [],
+        "isps": [],
+        "points": [],
+    }
+
     try:
         geo = await aggregate_geo_from_elasticsearch(
             es=es,
             index=settings.elasticsearch_enriched_index,
-            query=bool_query(hours),
+            query=bool_query(
+                hours,
+                _geo_filters(
+                    event_type=event_type,
+                    only_blocked=only_blocked,
+                    only_malicious=only_malicious,
+                ),
+            ),
+            direction=direction,
+            min_count=min_count,
         )
     except NotFoundError:
-        return {
-            "hours": hours,
-            "total_events": 0,
-            "geolocated_observations": 0,
-            "countries": [],
-            "cities": [],
-            "isps": [],
-            "points": [],
-        }
+        return empty_response
 
-    return {"hours": hours, **geo}
+    return {**empty_response, **geo}

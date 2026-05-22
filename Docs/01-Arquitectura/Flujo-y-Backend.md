@@ -69,7 +69,7 @@ flowchart LR
 - `GET /api/analytics/top-ips`: ranking de IPs origen o destino.
 - `GET /api/analytics/top-signatures`: ranking de firmas.
 - `GET /api/analytics/blocked`: resumen de bloqueos IPS.
-- `GET /api/analytics/geo`: agregacion geografica sobre muestra enriquecida.
+- `GET /api/analytics/geo`: agregacion geografica sobre `suricata-enriched-*` para el periodo completo filtrado.
 - `WS /ws`: eventos en tiempo real desde Redis Pub/Sub.
 
 ## Frontend implementado

@@ -18,10 +18,11 @@ def bool_query(hours: int, extra_filters: list | None = None) -> dict:
     return {"bool": {"filter": filters}}
 
 
-def blocked_signature_filter() -> dict:
+def blocked_signature_filter(keyword: bool = True) -> dict:
+    field = "suricata.eve.alert.signature.keyword" if keyword else "suricata.eve.alert.signature"
     return {
         "wildcard": {
-            "suricata.eve.alert.signature.keyword": {
+            field: {
                 "value": "*BLOQUEO*",
                 "case_insensitive": True,
             }

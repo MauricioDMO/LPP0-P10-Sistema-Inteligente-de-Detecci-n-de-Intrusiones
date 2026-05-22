@@ -70,13 +70,17 @@ docker run -p 8000:8000 --network suricata_default suricata-backend
 - `GET /api/analytics/top-ips?hours=24&direction=source&size=10` - Ranking de IPs origen o destino.
 - `GET /api/analytics/top-signatures?hours=24&size=10` - Firmas Suricata más frecuentes.
 - `GET /api/analytics/blocked?hours=24&size=10` - Resumen de reglas de bloqueo.
-- `GET /api/analytics/geo?hours=24&sample_size=200` - Agregación geográfica sobre muestra enriquecida.
+- `GET /api/analytics/geo?hours=24&direction=both&event_type=all&min_count=1` - Agregación geográfica sobre `suricata-enriched-*`.
 
 Parámetros comunes:
 
 - `hours`: rango histórico entre 1 y 168 horas.
 - `size`: cantidad de resultados para rankings.
-- `sample_size`: cantidad de eventos recientes a enriquecer para geografía.
+- `direction`: `source`, `destination` o `both` para geografía.
+- `event_type`: `all`, `alert`, `dns`, `http` o `tls` para geografía.
+- `only_blocked`: limita geografía a firmas de bloqueo.
+- `only_malicious`: limita geografía a eventos marcados como maliciosos.
+- `min_count`: cantidad mínima de eventos por punto geográfico.
 
 ### WebSocket
 

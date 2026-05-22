@@ -53,6 +53,18 @@ async def analytics_blocked(
 @router.get("/geo")
 async def analytics_geo(
     hours: int = Query(24, ge=1, le=168),
+    direction: str = Query("both", pattern="^(source|destination|both)$"),
+    event_type: str = Query("all", pattern="^(all|alert|dns|http|tls)$"),
+    only_blocked: bool = Query(False),
+    only_malicious: bool = Query(False),
+    min_count: int = Query(1, ge=1),
 ):
     """Agregacion geografica completa usando eventos enriquecidos persistidos."""
-    return await service.get_geo(hours=hours)
+    return await service.get_geo(
+        hours=hours,
+        direction=direction,
+        event_type=event_type,
+        only_blocked=only_blocked,
+        only_malicious=only_malicious,
+        min_count=min_count,
+    )

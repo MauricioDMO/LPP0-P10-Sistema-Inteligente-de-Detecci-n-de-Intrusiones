@@ -61,28 +61,31 @@ def _ranked(counter: Counter, key_name: str) -> list[dict]:
     return [{key_name: key, "count": count} for key, count in counter.most_common()]
 
 
-async def aggregate_geo_from_elasticsearch(es, index: str, query: dict) -> dict:
+async def aggregate_geo_from_elasticsearch(
+    es,
+    index: str,
+    query: dict,
+    direction: str = "both",
+    min_count: int = 1,
+) -> dict:
     """Recorre todas las ubicaciones del periodo con composite aggs paginadas."""
     total_resp = await es.count(index=index, query=query, ignore_unavailable=True)
     total_events = total_resp.get("count", 0)
 
-    countries = Counter()
-    cities = Counter()
-    isps = Counter()
     point_counts = Counter()
     point_countries: dict[tuple[float, float], Counter] = defaultdict(Counter)
     point_cities: dict[tuple[float, float], Counter] = defaultdict(Counter)
     point_isps: dict[tuple[float, float], Counter] = defaultdict(Counter)
-    geolocated_observations = 0
+    directions = ("source", "destination") if direction == "both" else (direction,)
 
-    for direction in ("source", "destination"):
+    for current_direction in directions:
         after_key = None
         while True:
             resp = await es.search(
                 index=index,
-                query=_location_query(query, direction),
+                query=_location_query(query, current_direction),
                 size=0,
-                aggs=_composite_agg(direction, after_key),
+                aggs=_composite_agg(current_direction, after_key),
                 ignore_unavailable=True,
             )
             locations = resp.get("aggregations", {}).get("locations", {})
@@ -101,16 +104,12 @@ async def aggregate_geo_from_elasticsearch(es, index: str, query: dict) -> dict:
                 isp = _clean_text(key.get("isp"))
                 point_key = (float(lat), float(lon))
 
-                geolocated_observations += count
                 point_counts[point_key] += count
                 if country:
-                    countries[country] += count
                     point_countries[point_key][country] += count
                 if city:
-                    cities[city] += count
                     point_cities[point_key][city] += count
                 if isp:
-                    isps[isp] += count
                     point_isps[point_key][isp] += count
 
             after_key = locations.get("after_key")
@@ -118,10 +117,22 @@ async def aggregate_geo_from_elasticsearch(es, index: str, query: dict) -> dict:
                 break
 
     points = []
+    countries = Counter()
+    cities = Counter()
+    isps = Counter()
+    geolocated_observations = 0
+
     for (lat, lon), count in point_counts.most_common():
+        if count < min_count:
+            continue
+
         country = point_countries[(lat, lon)].most_common(1)
         city = point_cities[(lat, lon)].most_common(1)
         isp = point_isps[(lat, lon)].most_common(1)
+        geolocated_observations += count
+        countries.update(point_countries[(lat, lon)])
+        cities.update(point_cities[(lat, lon)])
+        isps.update(point_isps[(lat, lon)])
         points.append(
             {
                 "lat": lat,
