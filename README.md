@@ -72,6 +72,20 @@ curl http://localhost:9200/_cat/indices?v
 curl http://localhost:8000/api/events/health
 ```
 
+El servicio `elasticsearch-setup` aplica de forma idempotente la politica ILM `suricata-1-year` y los templates `suricata-template` / `suricata-enriched-template` cuando Elasticsearch esta saludable. Para reaplicarlos manualmente:
+
+```bash
+docker compose run --rm elasticsearch-setup
+```
+
+Validar retencion y templates:
+
+```bash
+curl http://localhost:9200/_ilm/policy/suricata-1-year
+curl http://localhost:9200/_index_template/suricata-template
+curl http://localhost:9200/_index_template/suricata-enriched-template
+```
+
 Frontend:
 
 - http://localhost:3000

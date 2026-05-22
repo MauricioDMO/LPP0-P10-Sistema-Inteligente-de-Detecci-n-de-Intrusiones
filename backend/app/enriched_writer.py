@@ -73,8 +73,10 @@ async def ensure_enriched_template() -> None:
 
     template = {
         "index_patterns": [f"{settings.elasticsearch_enriched_write_index}-*"],
+        "priority": 200,
         "template": {
             "settings": {
+                "index.lifecycle.name": "suricata-1-year",
                 "number_of_shards": 1,
                 "number_of_replicas": 0,
             },

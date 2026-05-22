@@ -26,6 +26,22 @@ services:
       retries: 20
     restart: always
 
+  elasticsearch-setup:
+    image: curlimages/curl:8.10.1
+    container_name: elasticsearch-setup
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    volumes:
+      - ./elasticsearch/ilm:/setup/ilm:ro
+      - ./elasticsearch/templates:/setup/templates:ro
+      - ./elasticsearch/scripts/apply-index-management.sh:/setup/apply-index-management.sh:ro
+    entrypoint: [ "sh" ]
+    command: [ "/setup/apply-index-management.sh" ]
+    restart: "no"
+
   suricata:
     build:
       context: ./suricata

@@ -1,0 +1,180 @@
+{
+  "index_patterns": ["suricata-enriched-*"],
+  "priority": 200,
+  "template": {
+    "settings": {
+      "index.lifecycle.name": "suricata-1-year",
+      "number_of_shards": 1,
+      "number_of_replicas": 0
+    },
+    "mappings": {
+      "dynamic": true,
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "timestamp": {
+          "type": "date"
+        },
+        "event": {
+          "properties": {
+            "original": {
+              "type": "wildcard"
+            }
+          }
+        },
+        "source": {
+          "properties": {
+            "ip": {
+              "type": "ip"
+            },
+            "port": {
+              "type": "integer"
+            }
+          }
+        },
+        "destination": {
+          "properties": {
+            "ip": {
+              "type": "ip"
+            },
+            "port": {
+              "type": "integer"
+            }
+          }
+        },
+        "suricata": {
+          "properties": {
+            "eve": {
+              "properties": {
+                "event_type": {
+                  "type": "keyword"
+                },
+                "alert": {
+                  "properties": {
+                    "signature": {
+                      "type": "keyword"
+                    },
+                    "category": {
+                      "type": "keyword"
+                    },
+                    "severity": {
+                      "type": "integer"
+                    },
+                    "action": {
+                      "type": "keyword"
+                    },
+                    "gid": {
+                      "type": "integer"
+                    },
+                    "signature_id": {
+                      "type": "long"
+                    },
+                    "rev": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "_resolved": {
+          "properties": {
+            "source_hostname": {
+              "type": "keyword"
+            },
+            "dest_hostname": {
+              "type": "keyword"
+            }
+          }
+        },
+        "_geo": {
+          "properties": {
+            "source": {
+              "properties": {
+                "country": {
+                  "type": "keyword"
+                },
+                "country_code": {
+                  "type": "keyword"
+                },
+                "city": {
+                  "type": "keyword"
+                },
+                "isp": {
+                  "type": "keyword"
+                },
+                "lat": {
+                  "type": "float"
+                },
+                "lon": {
+                  "type": "float"
+                },
+                "location": {
+                  "type": "geo_point"
+                }
+              }
+            },
+            "destination": {
+              "properties": {
+                "country": {
+                  "type": "keyword"
+                },
+                "country_code": {
+                  "type": "keyword"
+                },
+                "city": {
+                  "type": "keyword"
+                },
+                "isp": {
+                  "type": "keyword"
+                },
+                "lat": {
+                  "type": "float"
+                },
+                "lon": {
+                  "type": "float"
+                },
+                "location": {
+                  "type": "geo_point"
+                }
+              }
+            }
+          }
+        },
+        "_threat": {
+          "properties": {
+            "is_malicious": {
+              "type": "boolean"
+            },
+            "confidence": {
+              "type": "integer"
+            },
+            "total_reports": {
+              "type": "integer"
+            },
+            "isp": {
+              "type": "keyword"
+            },
+            "domain": {
+              "type": "keyword"
+            },
+            "country_code": {
+              "type": "keyword"
+            },
+            "usage_type": {
+              "type": "keyword"
+            },
+            "is_tor": {
+              "type": "boolean"
+            },
+            "last_reported": {
+              "type": "date"
+            }
+          }
+        }
+      }
+    }
+  }
+}
