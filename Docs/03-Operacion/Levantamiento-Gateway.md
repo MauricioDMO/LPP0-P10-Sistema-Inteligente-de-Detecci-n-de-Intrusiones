@@ -16,21 +16,23 @@ Red externa/universidad
 
 ## Diferencia con el modo normal
 
-- `docker-compose.yml`: modo normal/local. Mantiene `local-ips`, que pone NFQUEUE en `OUTPUT` desde el contenedor.
+- `docker-compose.yml`: modo normal/local. Mantiene `ips`, que pone NFQUEUE en `OUTPUT` y `FORWARD` desde el contenedor.
 - `docker-compose.prod.yml`: variante basica con puertos principales ligados a `127.0.0.1`; no es gateway.
 - `docker-compose.gateway.yml`: compose standalone para gateway. Suricata usa `gateway-ips` y no modifica iptables desde el contenedor.
 
 ## Archivos relevantes
 
-- `scripts/gateway/gateway.env.example`: variables de interfaces, LAN, DHCP y NFQUEUE.
-- `scripts/gateway/render-config.sh`: renderiza templates con variables reales.
-- `scripts/gateway/install-symlinks.sh`: instala symlinks y configs renderizadas.
-- `scripts/gateway/apply-gateway.sh`: aplica IP LAN, forwarding, NAT y NFQUEUE.
-- `scripts/gateway/start-gateway.sh`: instala, aplica gateway y levanta Docker Compose.
-- `scripts/gateway/cleanup-gateway.sh`: limpia reglas NAT/NFQUEUE.
-- `scripts/gateway/unmount.sh`: baja compose y elimina symlinks/configs renderizadas.
+- `gateway/scripts/gateway.env.example`: variables de interfaces, LAN, DHCP y NFQUEUE.
+- `gateway/scripts/render-config.sh`: renderiza templates con variables reales.
+- `gateway/scripts/install-symlinks.sh`: instala symlinks y configs renderizadas.
+- `gateway/scripts/apply-gateway.sh`: aplica IP LAN, forwarding, NAT y NFQUEUE.
+- `gateway/scripts/start-gateway.sh`: instala, aplica gateway y levanta Docker Compose.
+- `gateway/scripts/cleanup-gateway.sh`: limpia reglas NAT/NFQUEUE.
+- `gateway/scripts/unmount.sh`: baja compose y elimina symlinks/configs renderizadas.
 - `gateway/templates/dnsmasq-lab.conf.tpl`: template DHCP.
 - `gateway/sysctl-suricata-gateway.conf`: sysctl persistente.
+- `gateway/vm/baseDeb-preseed.cfg`: preseed Debian base para la VM gateway.
+- `gateway/vm/baseDeb-usb-nic-realtek.xml`: fragmento libvirt para pasar un adaptador USB Realtek RTL8153 a la VM.
 
 ## Primer uso en la VM
 
@@ -45,7 +47,7 @@ sudo systemctl enable --now docker
 Instalar symlinks iniciales:
 
 ```bash
-./scripts/gateway/install-symlinks.sh
+./gateway/scripts/install-symlinks.sh
 ```
 
 Editar variables reales:
@@ -91,11 +93,20 @@ ping 192.168.50.1
 curl http://neverssl.com
 ```
 
-Kibana queda disponible en:
+Servicios disponibles en la LAN del gateway:
 
 ```text
-http://192.168.50.1:5601
+Frontend: http://192.168.50.1:3000
+Backend:  http://192.168.50.1:8000
 ```
+
+## Configuracion de VM
+
+- `gateway/vm/baseDeb-preseed.cfg` instala una Debian base con usuario `debian`, SSH, sudo y `qemu-guest-agent`.
+- Si la VM ya tiene dos NICs durante la instalacion, `netcfg/choose_interface auto` puede elegir cualquiera. Para una instalacion reproducible, instala con una sola NIC WAN y adjunta la USB Realtek despues, o fija la interfaz en el preseed.
+- Despues del primer arranque instala dependencias gateway con `sudo apt install -y docker.io docker-compose-plugin dnsmasq iptables iproute2 curl ethtool`.
+- `gateway/vm/baseDeb-usb-nic-realtek.xml` sirve para adjuntar por USB passthrough un NIC Realtek `0x0bda:0x8153`.
+- Si hay mas de un adaptador USB con el mismo vendor/product, fija tambien bus/device desde libvirt para evitar adjuntar el incorrecto.
 
 ## Limpieza
 

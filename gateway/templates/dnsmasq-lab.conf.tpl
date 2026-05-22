@@ -1,4 +1,4 @@
-# Rendered by scripts/gateway/render-config.sh.
+# Rendered by gateway/scripts/render-config.sh.
 interface={{LAN_IF}}
 bind-interfaces
 

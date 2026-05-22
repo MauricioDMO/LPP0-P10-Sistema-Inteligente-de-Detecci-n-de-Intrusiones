@@ -4,8 +4,8 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${GATEWAY_ENV_FILE:-/etc/suricata-lab/gateway.env}"
 
-"$PROJECT_DIR/scripts/gateway/install-symlinks.sh"
-"$PROJECT_DIR/scripts/gateway/apply-gateway.sh"
+"$PROJECT_DIR/gateway/scripts/install-symlinks.sh"
+"$PROJECT_DIR/gateway/scripts/apply-gateway.sh"
 
 # shellcheck disable=SC1090
 source "$ENV_FILE"
@@ -19,4 +19,4 @@ docker compose \
   -f "$PROJECT_DIR/docker-compose.gateway.yml" \
   up -d --build
 
-echo "Gateway stack started. Kibana: http://${GATEWAY_LAN_IP}:5601"
+echo "Gateway stack started. Frontend: http://${GATEWAY_LAN_IP}:3000 Backend: http://${GATEWAY_LAN_IP}:8000"

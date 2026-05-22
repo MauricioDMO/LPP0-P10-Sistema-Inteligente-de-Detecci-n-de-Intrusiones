@@ -5,7 +5,7 @@ ENV_FILE="${GATEWAY_ENV_FILE:-/etc/suricata-lab/gateway.env}"
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing $ENV_FILE" >&2
-  echo "Run scripts/gateway/install-symlinks.sh first, then edit WAN_IF and LAN_IF." >&2
+    echo "Run gateway/scripts/install-symlinks.sh first, then edit WAN_IF and LAN_IF." >&2
   exit 1
 fi
 

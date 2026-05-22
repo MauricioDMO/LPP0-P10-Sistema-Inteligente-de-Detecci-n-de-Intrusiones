@@ -14,7 +14,7 @@ if [[ -f "$ENV_FILE" ]]; then
     -f "$PROJECT_DIR/docker-compose.gateway.yml" \
     down || true
 
-  "$PROJECT_DIR/scripts/gateway/cleanup-gateway.sh" || true
+  "$PROJECT_DIR/gateway/scripts/cleanup-gateway.sh" || true
 fi
 
 sudo rm -f /usr/local/sbin/suricata-gateway-apply

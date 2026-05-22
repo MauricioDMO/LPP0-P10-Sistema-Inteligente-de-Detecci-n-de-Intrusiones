@@ -34,7 +34,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 Gateway experimental:
 
 ```bash
-scripts/gateway/start-gateway.sh
+gateway/scripts/start-gateway.sh
 ```
 
 Antes de ejecutar, revisa `.env`. Si cambias a `SURICATA_MODE=ids`, ajusta `SURICATA_INTERFACE` a una interfaz real del host.
