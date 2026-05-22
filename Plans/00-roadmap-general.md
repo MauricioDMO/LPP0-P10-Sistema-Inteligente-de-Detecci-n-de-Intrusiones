@@ -7,7 +7,7 @@ Evolucionar el proyecto Suricata desde un dashboard SOC/IPS de laboratorio hacia
 ## Orden de implementacion recomendado
 
 - [x] 1. Enriquecimiento persistente.
-- [ ] 2. Cerrar enriquecimiento persistente y backfill historico.
+- [x] 2. Cerrar enriquecimiento persistente y backfill historico.
 - [ ] 3. Retencion Elasticsearch 1 ano y templates versionados.
 - [ ] 4. PostgreSQL + ORM + JWT.
 - [ ] 5. Gestion Suricata por perfiles, fuentes, overrides y jobs.
