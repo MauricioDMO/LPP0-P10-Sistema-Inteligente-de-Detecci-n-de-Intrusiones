@@ -71,7 +71,7 @@ async def list_users(session: AsyncSession) -> list[User]:
 async def bump_token_version(session: AsyncSession, user: User) -> User:
     user.token_version += 1
     await session.commit()
-    await session.refresh(user, attribute_names=["roles"])
+    await session.refresh(user, attribute_names=["roles", "updated_at"])
     return user
 
 
@@ -104,7 +104,7 @@ async def create_user(session: AsyncSession, payload: UserCreate) -> User:
     )
     session.add(user)
     await session.commit()
-    await session.refresh(user, attribute_names=["roles"])
+    await session.refresh(user, attribute_names=["roles", "updated_at"])
     return user
 
 
@@ -144,7 +144,7 @@ async def update_user(
         user.roles = await get_roles_by_names(session, payload.roles)
 
     await session.commit()
-    await session.refresh(user, attribute_names=["roles"])
+    await session.refresh(user, attribute_names=["roles", "updated_at"])
     return user
 
 
@@ -156,7 +156,7 @@ async def deactivate_user(session: AsyncSession, user: User, acting_user: User |
     user.is_active = False
     user.token_version += 1
     await session.commit()
-    await session.refresh(user, attribute_names=["roles"])
+    await session.refresh(user, attribute_names=["roles", "updated_at"])
     return user
 
 
