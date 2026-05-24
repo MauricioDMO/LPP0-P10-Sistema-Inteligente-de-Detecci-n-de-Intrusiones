@@ -21,7 +21,7 @@ Suricata (IPS) -> NFQUEUE -> iptables OUTPUT
 |---|---|
 | `suricata/Dockerfile` | Adds `iptables-nft` for IPS NFQUEUE |
 | `suricata/entrypoint.sh` | IPS: iptables NFQUEUE; IDS: -i interface |
-| `suricata/config/rules/adult-block.rules` | Blocks 10 adult sites (TLS/HTTP/DNS) |
+| `backend/app/db/seed/suricata.py` | Seeds default sources, base profile, YouTube/adult custom rules |
 | `backend/app/geoip.py` | GeoLite2 or ip-api.com fallback, 1h cache |
 | `backend/app/threat_intel.py` | AbuseIPDB check, 24h cache |
 | `backend/app/enricher.py` | Orchestrates resolver + geoip + threat_intel |
@@ -31,7 +31,7 @@ Suricata (IPS) -> NFQUEUE -> iptables OUTPUT
 ## Key Modifications
 - **Kibana excluded** from both compose files.
 - **Suricata** now in **IPS mode** (`SURICATA_MODE=ips`), iptables NFQUEUE intercepts all host OUTPUT traffic.
-- **Adult-block rules** (43 total, 0 failed): TLS SNI reject + TCP HTTP reject + DNS alert for 10 sites.
+- **Default local rules** are seeded into PostgreSQL and managed from the UI as custom rules: YouTube + adult-site TLS/HTTP/DNS rules.
 - **Backend enrichment pipeline** adds 3 fields to every event:
   - `_resolved.source_hostname` / `.dest_hostname` (DNS PTR, 1h cache)
   - `_geo.source` / `.destination` (country, city, lat, lon, ISP; GeoLite2 or ip-api.com)
@@ -76,9 +76,9 @@ Suricata (IPS) -> NFQUEUE -> iptables OUTPUT
 - `.env` must have `SURICATA_MODE=ips` and `SURICATA_INTERFACE=enp0s3`.
 - Suricata image `jasonish/suricata:latest` is AlmaLinux 9-based (dnf/yum).
 - `iptables-nft` provides both `iptables` and `ip6tables` commands.
-- HTTP rules in `adult-block.rules` must use `reject tcp ... -> ... 80` syntax (not `reject http`), without `nocase` on `http.host` (already normalized).
+- Adult HTTP seed rules must use `reject tcp ... -> ... 80` syntax (not `reject http`), without `nocase` on `http.host` (already normalized).
 - GeoIP fallback to ip-api.com when no `GeoLite2-City.mmdb` at `/data/GeoLite2-City.mmdb`.
-- Telegram notifier requires valid `BACKEND_TELEGRAM_BOT_TOKEN` and `BACKEND_TELEGRAM_CHAT_ID` env vars.
+- Telegram notifier requires valid `BACKEND_TELEGRAM_BOT_TOKEN`; chat recipients are managed from the Suricata notifications panel.
 - Use `sg docker -c "..."` instead of bare `docker` when the user is not in the `docker` group.
 
 ## docker-compose v1 Bug
@@ -90,7 +90,6 @@ sg docker -c "docker rm -f <service> && docker rm -f a123272595fe_<service> 2>/d
 ## Env Vars for Backend
 Set in `docker-compose.yml` and `docker-compose.prod.yml` under `backend.environment`:
 - `BACKEND_TELEGRAM_BOT_TOKEN` — Telegram bot token
-- `BACKEND_TELEGRAM_CHAT_ID` — Telegram chat ID to notify
 - `BACKEND_ABUSEIPDB_KEY` — AbuseIPDB API key
 - `BACKEND_GEOIP_DB_PATH` — Path to GeoLite2-City.mmdb (default `/data/GeoLite2-City.mmdb`)
 

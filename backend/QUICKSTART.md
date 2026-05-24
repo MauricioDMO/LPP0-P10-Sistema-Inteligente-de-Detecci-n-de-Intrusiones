@@ -164,10 +164,9 @@ Para alertas Telegram, configurar:
 
 ```env
 BACKEND_TELEGRAM_BOT_TOKEN=
-BACKEND_TELEGRAM_CHAT_ID=
 ```
 
-Se notifican firmas con `BLOQUEO` y eventos marcados como maliciosos por threat intel.
+Los chats destino se configuran desde el panel de notificaciones de Suricata.
 
 ## Troubleshooting
 

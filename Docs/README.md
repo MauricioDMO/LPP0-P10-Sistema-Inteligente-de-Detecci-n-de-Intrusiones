@@ -11,7 +11,8 @@ El objetivo es que cualquier integrante pueda entender la arquitectura, levantar
 3. [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md)
 4. [Levantamiento en produccion basica](03-Operacion/Levantamiento-Produccion.md)
 5. [Inicio y verificacion](03-Operacion/Inicio-y-Verificacion.md)
-6. [Troubleshooting](03-Operacion/Troubleshooting.md)
+6. [Manual del panel Suricata](03-Operacion/Manual-Panel-Suricata.md)
+7. [Troubleshooting](03-Operacion/Troubleshooting.md)
 
 ## Levantar rapido
 
@@ -61,6 +62,7 @@ Las rutas de dashboard requieren login. La sesion se guarda en cookie HttpOnly e
 - [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md): arranque local/laboratorio.
 - [Levantamiento en produccion](03-Operacion/Levantamiento-Produccion.md): arranque con puertos restringidos a localhost.
 - [Inicio y verificacion](03-Operacion/Inicio-y-Verificacion.md): checklist end-to-end.
+- [Manual del panel Suricata](03-Operacion/Manual-Panel-Suricata.md): uso completo de `/suricata`, perfiles, fuentes, overrides, reglas custom y apply.
 - [Troubleshooting](03-Operacion/Troubleshooting.md): diagnostico de fallas comunes.
 - [Primer documento](04-Entregables/Primer-Doc.md): evidencia historica de la primera entrega.
 

@@ -1,5 +1,16 @@
 # Gestion Suricata Por Perfiles Y Politicas
 
+> Estado: plan MVP historico. La implementacion actual ya supero partes de este documento. Para operacion vigente usar `Docs/03-Operacion/Manual-Panel-Suricata.md` y `Docs/02-Componentes/Suricata.md`.
+
+Notas de divergencia conocidas:
+
+- La UI actual usa rutas separadas bajo `/suricata`: resumen, fuentes, perfiles, overrides, reglas custom y notificaciones.
+- El frontend limita `/suricata` a roles `admin` y `analyst`; los permisos `viewer` de lectura existen en backend, pero no en la UI actual.
+- Las fuentes iniciales reales son `et/open`, `abuse.ch/urlhaus`, `abuse.ch/feodotracker`, `abuse.ch/sslbl-blacklist` y `oisf/trafficid`.
+- Los modelos actuales agregan `notify_enabled` en overrides/reglas custom y la tabla `suricata_notification_settings` para Telegram.
+- El apply job se crea directamente como `running`; `pending` existe en el modelo, pero no es usado por el flujo actual.
+- `reject` en overrides se renderiza igual que `drop` en `drop.conf`; `modify.conf` sigue vacio.
+
 ## Objetivo
 
 Permitir administrar configuracion operativa de Suricata desde frontend/backend sin exponer un editor libre de archivos.
