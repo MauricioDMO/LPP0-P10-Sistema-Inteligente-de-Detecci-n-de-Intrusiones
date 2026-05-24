@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     # GeoIP
     geoip_db_path: str = "/data/GeoLite2-City.mmdb"
 
+    # Suricata management
+    suricata_container_name: str = "suricata"
+
     class Config:
         env_file = ".env"
         env_prefix = "BACKEND_"

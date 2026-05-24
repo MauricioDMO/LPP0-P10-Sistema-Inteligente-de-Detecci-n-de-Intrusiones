@@ -1,51 +1,116 @@
 import asyncio
 import logging
 import os
+import re
 import time
+from datetime import datetime, timedelta, timezone
 from typing import Dict
+
+from sqlalchemy import select
+
+from .db import AsyncSessionLocal
+from .models.suricata import SuricataCustomRule, SuricataNotificationSettings, SuricataProfile, SuricataRuleOverride
 
 logger = logging.getLogger(__name__)
 
 TELEGRAM_BOT_TOKEN = os.getenv("BACKEND_TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_CHAT_ID = os.getenv("BACKEND_TELEGRAM_CHAT_ID", "")
 
 _last_sent: Dict[str, float] = {}
 _COOLDOWN_SECONDS = 30
+_buffered_events: list[dict] = []
+_buffer_task: asyncio.Task | None = None
 
 
-def _is_alert_adult(event: dict) -> bool:
-    sig = (event.get("alert") or event.get("suricata", {}).get("eve", {}).get("alert") or {}).get("signature") or ""
-    return "bloqueo" in sig.lower()
+def _alert(event: dict) -> dict:
+    return event.get("alert") or event.get("suricata", {}).get("eve", {}).get("alert") or {}
 
 
-def _should_notify(event: dict) -> bool:
-    event_type = event.get("event_type") or event.get("suricata", {}).get("eve", {}).get("event_type") or ""
-    if event_type != "alert":
-        return False
+def _event_type(event: dict) -> str:
+    return event.get("event_type") or event.get("suricata", {}).get("eve", {}).get("event_type") or ""
 
-    is_adult = _is_alert_adult(event)
 
-    threat = event.get("_threat")
-    is_malicious = threat and threat.get("is_malicious", False)
+def _event_rule_id(event: dict) -> tuple[int, int] | None:
+    alert = _alert(event)
+    sid = alert.get("signature_id") or alert.get("sid")
+    if sid is None:
+        return None
+    gid = alert.get("gid") or alert.get("generator_id") or 1
+    try:
+        return int(gid), int(sid)
+    except (TypeError, ValueError):
+        return None
 
-    return is_adult or is_malicious
+
+def _rule_text_id(rule_text: str) -> tuple[int, int] | None:
+    sid_match = re.search(r"\bsid\s*:\s*(\d+)\s*;", rule_text)
+    if sid_match is None:
+        return None
+    gid_match = re.search(r"\bgid\s*:\s*(\d+)\s*;", rule_text)
+    return int(gid_match.group(1)) if gid_match else 1, int(sid_match.group(1))
+
+
+async def _notification_settings(session) -> SuricataNotificationSettings | None:
+    result = await session.execute(select(SuricataNotificationSettings).order_by(SuricataNotificationSettings.created_at).limit(1))
+    return result.scalar_one_or_none()
+
+
+async def _should_notify(event: dict) -> tuple[bool, SuricataNotificationSettings | None]:
+    if _event_type(event) != "alert":
+        return False, None
+    rule_id = _event_rule_id(event)
+    if rule_id is None:
+        return False, None
+
+    gid, sid = rule_id
+    async with AsyncSessionLocal() as session:
+        settings = await _notification_settings(session)
+        if settings is None or not settings.telegram_enabled or not settings.telegram_chat_recipients:
+            return False, settings
+
+        profile_result = await session.execute(select(SuricataProfile).where(SuricataProfile.is_active.is_(True)).limit(1))
+        profile = profile_result.scalar_one_or_none()
+        if profile is None:
+            return False, settings
+
+        override_result = await session.execute(
+            select(SuricataRuleOverride).where(
+                SuricataRuleOverride.profile_id == profile.id,
+                SuricataRuleOverride.gid == gid,
+                SuricataRuleOverride.sid == sid,
+                SuricataRuleOverride.notify_enabled.is_(True),
+            )
+        )
+        if override_result.scalar_one_or_none() is not None:
+            return True, settings
+
+        rules_result = await session.execute(
+            select(SuricataCustomRule).where(
+                SuricataCustomRule.profile_id == profile.id,
+                SuricataCustomRule.notify_enabled.is_(True),
+            )
+        )
+        for rule in rules_result.scalars().all():
+            if _rule_text_id(rule.rule_text) == rule_id:
+                return True, settings
+
+    return False, settings
 
 
 def _get_dedup_key(event: dict) -> str:
-    sig = (event.get("alert") or event.get("suricata", {}).get("eve", {}).get("alert") or {}).get("signature") or ""
+    sig = _alert(event).get("signature") or ""
     src = event.get("src_ip") or event.get("source", {}).get("ip") or ""
     return f"{sig}:{src}"
 
 
-async def send_telegram(message: str):
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        logger.warning("Telegram not configured - missing token or chat ID")
+async def send_telegram(message: str, chat_id: str):
+    if not TELEGRAM_BOT_TOKEN:
+        logger.warning("Telegram not configured - missing bot token")
         return
     try:
         import aiohttp
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {
-            "chat_id": TELEGRAM_CHAT_ID,
+            "chat_id": chat_id,
             "text": message,
             "parse_mode": "Markdown",
             "disable_web_page_preview": True,
@@ -59,8 +124,31 @@ async def send_telegram(message: str):
         logger.warning("Telegram send error: %s", e)
 
 
-def _format_message(event: dict) -> str:
-    sig = (event.get("alert") or event.get("suricata", {}).get("eve", {}).get("alert") or {}).get("signature") or "Alerta"
+def _tzinfo(timezone_value: str) -> timezone:
+    if timezone_value == "UTC":
+        return timezone.utc
+    match = re.fullmatch(r"UTC([+-])(\d{1,2})(?::?(\d{2}))?", timezone_value.strip())
+    if match is None:
+        return timezone.utc
+    sign = 1 if match.group(1) == "+" else -1
+    hours = int(match.group(2))
+    minutes = int(match.group(3) or 0)
+    return timezone(sign * timedelta(hours=hours, minutes=minutes))
+
+
+def _format_event_time(event: dict, timezone_value: str) -> str:
+    ts = event.get("timestamp") or event.get("@timestamp") or ""
+    if not ts:
+        return ""
+    try:
+        parsed = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        return parsed.astimezone(_tzinfo(timezone_value)).strftime("%Y-%m-%d %H:%M:%S %Z")
+    except Exception:
+        return ts
+
+
+def _format_message(event: dict, timezone_value: str = "UTC") -> str:
+    sig = _alert(event).get("signature") or "Alerta"
     src = event.get("src_ip") or event.get("source", {}).get("ip") or "?"
     dst = event.get("dest_ip") or event.get("destination", {}).get("ip") or "?"
     domain = ""
@@ -76,13 +164,7 @@ def _format_message(event: dict) -> str:
     if http and http.get("hostname"):
         domain = http["hostname"]
 
-    ts = event.get("timestamp") or event.get("@timestamp") or ""
-    if ts:
-        try:
-            from datetime import datetime
-            ts = datetime.fromisoformat(ts.replace("Z", "+00:00")).strftime("%H:%M:%S")
-        except Exception:
-            pass
+    ts = _format_event_time(event, timezone_value)
 
     icon = "🚫"
     if "bloqueo" in sig.lower():
@@ -109,8 +191,39 @@ def _format_message(event: dict) -> str:
     return "\n".join(line for line in lines if line)
 
 
+def _format_buffer_message(events: list[dict], timezone_value: str) -> str:
+    lines = [f"*Resumen Suricata:* {len(events)} alertas"]
+    for event in events[:20]:
+        sig = _alert(event).get("signature") or "Alerta"
+        src = event.get("src_ip") or event.get("source", {}).get("ip") or "?"
+        dst = event.get("dest_ip") or event.get("destination", {}).get("ip") or "?"
+        ts = _format_event_time(event, timezone_value)
+        lines.append(f"- `{ts}` {sig} | `{src}` -> `{dst}`")
+    if len(events) > 20:
+        lines.append(f"... y {len(events) - 20} alertas mas")
+    return "\n".join(lines)
+
+
+async def _send_to_recipients(message: str, settings: SuricataNotificationSettings) -> None:
+    for recipient in settings.telegram_chat_recipients:
+        chat_id = str(recipient.get("chat_id", "")).strip()
+        if chat_id:
+            await send_telegram(message, chat_id)
+
+
+async def _flush_buffer(settings: SuricataNotificationSettings) -> None:
+    global _buffer_task
+    await asyncio.sleep(settings.buffer_minutes * 60)
+    events = list(_buffered_events)
+    _buffered_events.clear()
+    _buffer_task = None
+    if events:
+        await _send_to_recipients(_format_buffer_message(events, settings.timezone), settings)
+
+
 async def process_event(event: dict):
-    if not _should_notify(event):
+    should_notify, settings = await _should_notify(event)
+    if not should_notify or settings is None:
         return
 
     key = _get_dedup_key(event)
@@ -120,5 +233,12 @@ async def process_event(event: dict):
         return
 
     _last_sent[key] = now
-    message = _format_message(event)
-    await send_telegram(message)
+    if settings.buffer_enabled:
+        global _buffer_task
+        _buffered_events.append(event)
+        if _buffer_task is None or _buffer_task.done():
+            _buffer_task = asyncio.create_task(_flush_buffer(settings))
+        return
+
+    message = _format_message(event, settings.timezone)
+    await _send_to_recipients(message, settings)

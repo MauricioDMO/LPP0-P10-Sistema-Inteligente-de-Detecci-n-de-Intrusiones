@@ -16,7 +16,8 @@ from .enricher import enrich_event
 from .enriched_writer import ensure_enriched_template, persist_enriched_event
 from . import notifier
 from .db import AsyncSessionLocal
-from .routes import analytics, auth, events
+from .db.seed import bootstrap_suricata_management
+from .routes import analytics, auth, events, suricata
 from .security import decode_access_token
 from .services.auth_service import bootstrap_auth
 from .services.auth_service import get_user_by_id
@@ -140,6 +141,7 @@ async def initialize_auth_data() -> None:
     """Crea roles base y usuario admin inicial si la DB ya fue migrada."""
     async with AsyncSessionLocal() as session:
         await bootstrap_auth(session)
+        await bootstrap_suricata_management(session)
 
 
 def warn_insecure_defaults() -> None:
@@ -184,6 +186,7 @@ app.add_middleware(
 app.include_router(analytics.router)
 app.include_router(auth.router)
 app.include_router(events.router)
+app.include_router(suricata.router)
 
 
 @app.get("/")

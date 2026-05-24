@@ -5,6 +5,7 @@ WORKDIR /app
 # Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
     gcc \
+    docker.io \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar requirements e instalar dependencias de Python
