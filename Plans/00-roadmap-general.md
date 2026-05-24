@@ -10,7 +10,7 @@ Evolucionar el proyecto Suricata desde un dashboard SOC/IPS de laboratorio hacia
 - [x] 2. Cerrar enriquecimiento persistente y backfill historico.
 - [x] 3. Retencion Elasticsearch 1 ano y templates versionados.
 - [x] 4. PostgreSQL + ORM + JWT.
-- [ ] 5. Gestion Suricata por perfiles, fuentes, overrides y jobs.
+- [x] 5. Gestion Suricata por perfiles, fuentes, overrides y jobs.
 - [ ] 6. Listas negras y blancas sobre el motor de reglas gestionadas.
 - [ ] 7. Threat Intel gestionada en base de datos.
 - [ ] 8. Dashboard de salud del stack.
@@ -29,6 +29,8 @@ Evolucionar el proyecto Suricata desde un dashboard SOC/IPS de laboratorio hacia
 - `08-dashboard-salud-stack.md`
 - `09-captura-pcap.md`
 - `10-timeline-incidentes.md`
+
+Nota: la implementacion 5 esta cerrada como MVP operativo. Quedan como mejoras futuras el apply completamente atomico, soporte real de `reject`/`alert` via `modify.conf` y mayor cobertura de pruebas de API/UI.
 
 ## Dependencias clave
 
