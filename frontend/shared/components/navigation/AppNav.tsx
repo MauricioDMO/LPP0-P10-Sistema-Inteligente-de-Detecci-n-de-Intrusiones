@@ -23,9 +23,9 @@ const navItems: Array<{ href: string; label: string; detail: string; icon: Icon;
   { href: "/live", label: "En vivo", detail: "WebSocket", icon: IconActivityHeartbeat },
   { href: "/geo", label: "Geografía", detail: "Heatmap", icon: IconGlobe },
   { href: "/historical", label: "Histórico", detail: "Elasticsearch", icon: IconHistory },
+  { href: "/rankings", label: "Rankings", detail: "Top N", icon: IconChartBar },
   { href: "/blocked", label: "Bloqueos", detail: "IPS", icon: IconShieldLock },
   { href: "/suricata", label: "Suricata", detail: "Reglas", icon: IconShieldLock, roles: ["admin", "analyst"] },
-  { href: "/rankings", label: "Rankings", detail: "Top N", icon: IconChartBar },
   { href: "/admin/users", label: "Usuarios", detail: "Admin", icon: IconUsers, roles: ["admin"] },
 ];
 
