@@ -1,8 +1,10 @@
 """Render Suricata policy rows into controlled config files."""
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from ..models.suricata import SuricataCustomRule, SuricataRuleOverride
+if TYPE_CHECKING:
+    from ..models.suricata import SuricataCustomRule, SuricataRuleOverride
 
 
 @dataclass(frozen=True)
@@ -23,12 +25,12 @@ class RenderedSuricataConfig:
         }
 
 
-def sid_line(override: SuricataRuleOverride) -> str:
+def sid_line(override: "SuricataRuleOverride") -> str:
     return f"{override.gid}:{override.sid}"
 
 
 def render_suricata_config(
-    overrides: list[SuricataRuleOverride], custom_rules: list[SuricataCustomRule]
+    overrides: list["SuricataRuleOverride"], custom_rules: list["SuricataCustomRule"]
 ) -> RenderedSuricataConfig:
     enabled_overrides = [override for override in overrides if override.enabled]
     enable_lines = sorted(sid_line(override) for override in enabled_overrides if override.action == "enable")

@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -80,42 +80,100 @@ def write_rendered_files(directory: Path, rendered: RenderedSuricataConfig) -> N
     (local_rules_dir / "custom.rules").write_text(rendered.local_rules, encoding="utf-8")
 
 
+def backup_active_files(container: str) -> str:
+    backup_dir = f"/tmp/suricata-policy-backup-{uuid4().hex}"
+    run_command(
+        [
+            "docker",
+            "exec",
+            container,
+            "sh",
+            "-c",
+            f"mkdir -p {backup_dir}/local-rules && "
+            "for file in enable.conf disable.conf drop.conf modify.conf; do "
+            f"cp -f /etc/suricata/$file {backup_dir}/$file 2>/dev/null || true; "
+            "done && "
+            f"cp -f /etc/suricata/local-rules/custom.rules {backup_dir}/local-rules/custom.rules 2>/dev/null || true",
+        ]
+    )
+    return backup_dir
+
+
+def restore_active_files(container: str, backup_dir: str) -> str:
+    return run_command(
+        [
+            "docker",
+            "exec",
+            container,
+            "sh",
+            "-c",
+            "for file in enable.conf disable.conf drop.conf modify.conf; do "
+            f"if [ -f {backup_dir}/$file ]; then cp -f {backup_dir}/$file /etc/suricata/$file; else rm -f /etc/suricata/$file; fi; "
+            "done && "
+            "mkdir -p /etc/suricata/local-rules && "
+            f"if [ -f {backup_dir}/local-rules/custom.rules ]; then "
+            f"cp -f {backup_dir}/local-rules/custom.rules /etc/suricata/local-rules/custom.rules; "
+            "else rm -f /etc/suricata/local-rules/custom.rules; fi",
+        ]
+    )
+
+
+def cleanup_backup(container: str, backup_dir: str) -> None:
+    try:
+        run_command(["docker", "exec", container, "rm", "-rf", backup_dir])
+    except SuricataCommandError:
+        pass
+
+
 def apply_with_docker(rendered: RenderedSuricataConfig, sources: list[SuricataSource]) -> str:
     outputs: list[str] = []
     container = settings.suricata_container_name
-    with tempfile.TemporaryDirectory(prefix="suricata-policy-") as temp_dir:
-        temp_path = Path(temp_dir)
-        write_rendered_files(temp_path, rendered)
-        for file_name in ["enable.conf", "disable.conf", "drop.conf", "modify.conf"]:
-            outputs.append(run_command(["docker", "cp", str(temp_path / file_name), f"{container}:/etc/suricata/{file_name}"]))
-        outputs.append(run_command(["docker", "exec", container, "mkdir", "-p", "/etc/suricata/local-rules"]))
-        outputs.append(run_command(["docker", "cp", str(temp_path / "local-rules" / "custom.rules"), f"{container}:/etc/suricata/local-rules/custom.rules"]))
+    backup_dir = backup_active_files(container)
+    try:
+        with tempfile.TemporaryDirectory(prefix="suricata-policy-") as temp_dir:
+            temp_path = Path(temp_dir)
+            write_rendered_files(temp_path, rendered)
+            for file_name in ["enable.conf", "disable.conf", "drop.conf", "modify.conf"]:
+                outputs.append(run_command(["docker", "cp", str(temp_path / file_name), f"{container}:/etc/suricata/{file_name}"]))
+            outputs.append(run_command(["docker", "exec", container, "mkdir", "-p", "/etc/suricata/local-rules"]))
+            outputs.append(run_command(["docker", "cp", str(temp_path / "local-rules" / "custom.rules"), f"{container}:/etc/suricata/local-rules/custom.rules"]))
 
-    for source in sources:
-        source_action = "enable-source" if source.enabled else "disable-source"
-        outputs.append(run_command(["docker", "exec", container, "suricata-update", source_action, source.source_name]))
+        for source in sources:
+            source_action = "enable-source" if source.enabled else "disable-source"
+            outputs.append(run_command(["docker", "exec", container, "suricata-update", source_action, source.source_name]))
 
-    outputs.append(
-        run_command(
-            [
-                "docker",
-                "exec",
-                container,
-                "suricata-update",
-                "--suricata-conf",
-                "/etc/suricata/suricata.yaml",
-                "--enable-conf",
-                "/etc/suricata/enable.conf",
-                "--disable-conf",
-                "/etc/suricata/disable.conf",
-                "--drop-conf",
-                "/etc/suricata/drop.conf",
-                "--local",
-                "/etc/suricata/local-rules",
-            ]
+        outputs.append(
+            run_command(
+                [
+                    "docker",
+                    "exec",
+                    container,
+                    "suricata-update",
+                    "--suricata-conf",
+                    "/etc/suricata/suricata.yaml",
+                    "--enable-conf",
+                    "/etc/suricata/enable.conf",
+                    "--disable-conf",
+                    "/etc/suricata/disable.conf",
+                    "--drop-conf",
+                    "/etc/suricata/drop.conf",
+                    "--local",
+                    "/etc/suricata/local-rules",
+                ]
+            )
         )
-    )
-    outputs.append(run_command(["docker", "exec", container, "suricata", "-T", "-c", "/etc/suricata/suricata.yaml"]))
+        outputs.append(run_command(["docker", "exec", container, "suricata", "-T", "-c", "/etc/suricata/suricata.yaml"]))
+    except Exception as exc:
+        try:
+            restore_output = restore_active_files(container, backup_dir)
+            if restore_output:
+                outputs.append(restore_output)
+        except SuricataCommandError as restore_exc:
+            raise SuricataCommandError(f"{exc}; ademas fallo la restauracion", "\n".join([getattr(exc, "output", str(exc)), restore_exc.output])) from exc
+        raise
+    finally:
+        cleanup_backup(container, backup_dir)
+
     outputs.append(
         run_command(
             [
