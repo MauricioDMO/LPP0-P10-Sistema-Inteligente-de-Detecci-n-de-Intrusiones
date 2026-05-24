@@ -45,6 +45,31 @@ Notas:
 
 ## 3. Levantar el stack
 
+Opcion automatizada recomendada:
+
+```bash
+./scripts/dev-up.sh
+```
+
+El script:
+
+- crea `.env` minimo si no existe;
+- levanta el stack con `docker compose up -d --build`;
+- pide un usuario y password para crear un admin nuevo;
+- desactiva el usuario bootstrap `admin` si existe y es distinto al admin nuevo;
+- aplica el perfil activo de Suricata;
+- valida backend, frontend, Redis, IPS/NFQUEUE y reglas cargadas.
+
+Tambien puedes pasar credenciales sin prompt:
+
+```bash
+DEV_ADMIN_USERNAME=mauricio DEV_ADMIN_PASSWORD='cambia-este-password' ./scripts/dev-up.sh
+```
+
+Nota: el endpoint `DELETE /api/auth/users/{id}` desactiva usuarios; no hace borrado fisico en base de datos para evitar dejar el sistema sin admins y preservar consistencia.
+
+Opcion manual:
+
 ```bash
 docker compose up -d --build
 ```
@@ -92,6 +117,27 @@ curl -c cookies.txt -b cookies.txt -X POST http://localhost:8000/api/auth/login 
 curl -b cookies.txt http://localhost:8000/api/auth/me
 ```
 
+En un arranque limpio, aplica el perfil activo para generar y recargar reglas de Suricata:
+
+```bash
+CSRF=$(awk '/suricata_csrf/ {print $7}' cookies.txt)
+PROFILE_ID=$(curl -fsS -b cookies.txt http://localhost:8000/api/suricata/profiles \
+  | python3 -c 'import json,sys; print(next(p["id"] for p in json.load(sys.stdin) if p.get("is_active")))')
+
+curl -fsS -b cookies.txt -X POST http://localhost:8000/api/suricata/apply \
+  -H "Content-Type: application/json" \
+  -H "X-CSRF-Token: $CSRF" \
+  -d "{\"profile_id\":\"$PROFILE_ID\"}"
+```
+
+Verifica que Suricata quedo en IPS y con reglas:
+
+```bash
+docker exec suricata iptables -L OUTPUT -n
+docker exec suricata wc -l /var/lib/suricata/rules/suricata.rules
+docker logs suricata --tail=40
+```
+
 ## 5. Generar trafico de prueba
 
 ```bash
@@ -104,7 +150,7 @@ Luego revisa:
 
 ```bash
 curl http://localhost:9200/_cat/indices?v
-curl -b cookies.txt http://localhost:8000/api/events/latest?limit=3
+curl -b cookies.txt 'http://localhost:8000/api/events/latest?limit=3'
 ```
 
 Para validar realtime:
@@ -116,6 +162,12 @@ docker exec redis redis-cli SUBSCRIBE suricata
 Genera trafico desde otra terminal y deberias ver eventos publicados.
 
 El dashboard Next.js tambien debe actualizarse en `http://localhost:3000` si el backend esta conectado por WebSocket.
+
+Para ejecutar todas las verificaciones principales:
+
+```bash
+./scripts/dev-check.sh
+```
 
 ## 6. Apagar
 
