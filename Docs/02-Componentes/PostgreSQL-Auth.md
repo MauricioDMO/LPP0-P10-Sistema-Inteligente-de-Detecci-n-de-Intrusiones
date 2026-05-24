@@ -43,7 +43,7 @@ BACKEND_JWT_ALGORITHM=HS256
 BACKEND_JWT_EXPIRES_MINUTES=480
 BACKEND_INITIAL_ADMIN_USERNAME=admin
 BACKEND_INITIAL_ADMIN_PASSWORD=admin123
-BACKEND_INITIAL_ADMIN_EMAIL=admin@suricata.local
+BACKEND_INITIAL_ADMIN_EMAIL=admin@example.com
 ```
 
 Para produccion, cambiar `POSTGRES_PASSWORD`, `BACKEND_DATABASE_URL`, `BACKEND_JWT_SECRET` y las credenciales del admin inicial antes del primer arranque.
@@ -134,7 +134,7 @@ Response:
   "user": {
     "id": "...",
     "username": "admin",
-    "email": "admin@suricata.local",
+    "email": "admin@example.com",
     "is_active": true,
     "roles": ["admin"],
     "created_at": "...",

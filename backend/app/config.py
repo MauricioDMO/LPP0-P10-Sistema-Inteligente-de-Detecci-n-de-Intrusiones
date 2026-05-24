@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     # Bootstrap admin
     initial_admin_username: str = "admin"
     initial_admin_password: str = "admin123"
-    initial_admin_email: Optional[str] = "admin@suricata.local"
+    initial_admin_email: Optional[str] = "admin@example.com"
 
     # FastAPI
     api_host: str = "0.0.0.0"
