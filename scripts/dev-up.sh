@@ -115,7 +115,7 @@ prompt_admin_credentials() {
   if [[ -n "${DEV_ADMIN_USERNAME:-}" && -n "${DEV_ADMIN_PASSWORD:-}" ]]; then
     ADMIN_USERNAME="$DEV_ADMIN_USERNAME"
     ADMIN_PASSWORD="$DEV_ADMIN_PASSWORD"
-    ADMIN_EMAIL="${DEV_ADMIN_EMAIL:-$ADMIN_USERNAME@local}"
+    ADMIN_EMAIL="${DEV_ADMIN_EMAIL:-$ADMIN_USERNAME@suricata.local}"
     return
   fi
 
@@ -125,8 +125,8 @@ prompt_admin_credentials() {
   done
 
   ADMIN_EMAIL="${DEV_ADMIN_EMAIL:-}"
-  read -r -p "Email [$ADMIN_USERNAME@local]: " ADMIN_EMAIL
-  ADMIN_EMAIL="${ADMIN_EMAIL:-$ADMIN_USERNAME@local}"
+  read -r -p "Email [$ADMIN_USERNAME@suricata.local]: " ADMIN_EMAIL
+  ADMIN_EMAIL="${ADMIN_EMAIL:-$ADMIN_USERNAME@suricata.local}"
 
   local password_again=""
   while true; do

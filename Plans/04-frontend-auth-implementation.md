@@ -34,7 +34,7 @@ Response:
   "user": {
     "id": "...",
     "username": "admin",
-    "email": "admin@local",
+    "email": "admin@suricata.local",
     "is_active": true,
     "roles": ["admin"],
     "created_at": "...",
