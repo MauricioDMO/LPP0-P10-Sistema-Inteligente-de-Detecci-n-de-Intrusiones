@@ -2189,8 +2189,6 @@ default-rule-path: /var/lib/suricata/rules
 
 rule-files:
   - suricata.rules
-  - youtube-block.rules
-  - adult-block.rules
 
 ##
 ## Auxiliary configuration files.

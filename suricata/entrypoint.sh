@@ -3,6 +3,11 @@ set -euo pipefail
 
 MODE="${SURICATA_MODE:-ips}"
 
+prepare_rules() {
+  mkdir -p /var/lib/suricata/rules
+  touch /var/lib/suricata/rules/suricata.rules
+}
+
 queue_traffic() {
   local iptables_cmd="$1"
   local chain="$2"
@@ -34,6 +39,7 @@ stop_suricata() {
 if [[ "$MODE" == "ips" ]]; then
   trap stop_suricata EXIT INT TERM
 
+  prepare_rules
   cleanup_queue_rules
 
   queue_traffic iptables OUTPUT
@@ -57,6 +63,8 @@ if [[ "$MODE" != "ids" ]]; then
   echo "Error: SURICATA_MODE must be 'ips' or 'ids'." >&2
   exit 1
 fi
+
+prepare_rules
 
 RAW_IFACES="${SURICATA_INTERFACE:-eth0}"
 IFS=',' read -r -a IFACES <<< "$RAW_IFACES"
