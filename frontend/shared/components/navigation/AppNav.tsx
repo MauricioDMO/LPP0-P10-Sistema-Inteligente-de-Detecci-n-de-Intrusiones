@@ -24,6 +24,7 @@ const navItems: Array<{ href: string; label: string; detail: string; icon: Icon;
   { href: "/geo", label: "Geografía", detail: "Heatmap", icon: IconGlobe },
   { href: "/historical", label: "Histórico", detail: "Elasticsearch", icon: IconHistory },
   { href: "/blocked", label: "Bloqueos", detail: "IPS", icon: IconShieldLock },
+  { href: "/suricata", label: "Suricata", detail: "Reglas", icon: IconShieldLock, roles: ["admin", "analyst"] },
   { href: "/rankings", label: "Rankings", detail: "Top N", icon: IconChartBar },
   { href: "/admin/users", label: "Usuarios", detail: "Admin", icon: IconUsers, roles: ["admin"] },
 ];
@@ -91,7 +92,7 @@ export function AppNav() {
 
           <div className="space-y-2">
             {visibleNavItems.map((item) => {
-              const isActive = pathname === item.href || (pathname === "/" && item.href === "/live");
+              const isActive = pathname === item.href || (pathname.startsWith(`${item.href}/`) && item.href !== "/live") || (pathname === "/" && item.href === "/live");
               const ItemIcon = item.icon;
 
               return (
