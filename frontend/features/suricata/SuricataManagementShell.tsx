@@ -161,9 +161,9 @@ export function SuricataManagementShell({ children }: { children: React.ReactNod
   return (
     <main className="min-h-screen px-3 py-5 text-foreground sm:px-4 sm:py-6 lg:px-6 lg:py-8">
       <div className="mx-auto flex max-w-450 flex-col gap-6 lg:gap-8">
-        <section className="rounded -mb-5 border border-soc-outline/80 bg-soc-low/90 p-2 shadow-[0_18px_60px_rgba(0,0,0,0.24)] backdrop-blur" aria-label="Estado actual de Suricata">
-          <div className="grid gap-2 lg:grid-cols-[minmax(15rem,1.4fr)_minmax(14rem,1fr)_minmax(16rem,1.2fr)_auto] lg:items-stretch">
-            <div className="rounded border border-soc-outline/60 bg-soc-lowest/45 p-4">
+        <section className="rounded -mb-5 border border-soc-outline/70 bg-soc-low/90 px-3 py-3 shadow-[0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur" aria-label="Estado actual de Suricata">
+          <div className="grid gap-0 divide-y divide-soc-outline/35 lg:grid-cols-[minmax(15rem,1.4fr)_minmax(14rem,1fr)_minmax(16rem,1.2fr)_auto] lg:items-stretch lg:divide-x lg:divide-y-0">
+            <div className="py-3 lg:py-1 lg:pr-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="font-mono text-[10px] font-black uppercase tracking-[0.18em] text-soc-muted">Estado actual</div>
@@ -174,19 +174,19 @@ export function SuricataManagementShell({ children }: { children: React.ReactNod
               <p className="mt-2 text-xs leading-5 text-soc-muted">Perfil activo y disponibilidad del contenedor Suricata.</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-xs text-soc-muted sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              <div className="rounded border border-soc-outline/60 bg-soc-lowest/55 p-4">
+            <div className="grid grid-cols-2 divide-x divide-soc-outline/35 py-3 text-xs text-soc-muted sm:grid-cols-2 lg:grid-cols-1 lg:divide-x-0 lg:divide-y lg:px-4 lg:py-1 xl:grid-cols-2 xl:divide-x xl:divide-y-0">
+              <div className="px-3 lg:px-0 lg:py-3 xl:px-3 xl:py-1">
                 <span className="block uppercase tracking-[0.12em]">Modo</span>
                 <strong className="mt-1 block text-white">{status?.active_profile?.mode ?? "-"}</strong>
               </div>
-              <div className="rounded border border-soc-outline/60 bg-soc-lowest/55 p-4">
+              <div className="px-3 lg:px-0 lg:py-3 xl:px-3 xl:py-1">
                 <span className="block uppercase tracking-[0.12em]">Último apply</span>
                 <strong className="mt-1 block text-white">{status?.last_job?.status ?? "sin jobs"}</strong>
                 <span className="mt-1 block font-mono text-[10px]">{formatDate(status?.last_job?.created_at ?? null)}</span>
               </div>
             </div>
 
-            <div className="rounded border border-soc-outline/60 bg-soc-lowest/45 p-4">
+            <div className="py-3 lg:px-4 lg:py-1">
               <div className="flex flex-wrap gap-2">
                 <StatusPill tone={applyWsStatus === "connected" ? "success" : applyWsStatus === "error" ? "danger" : "warning"}>ws {applyWsStatus}</StatusPill>
                 <StatusPill tone={hasPendingChanges ? "warning" : "success"}>{hasPendingChanges ? "pendiente" : "sin cambios"}</StatusPill>
@@ -195,7 +195,7 @@ export function SuricataManagementShell({ children }: { children: React.ReactNod
               </div>
             </div>
 
-            <div className="flex flex-col justify-center gap-2 sm:flex-row sm:flex-wrap lg:min-w-56 lg:flex-col">
+            <div className="flex flex-col justify-center gap-2 py-3 sm:flex-row sm:flex-wrap lg:min-w-56 lg:flex-col lg:py-1 lg:pl-4">
               <ActionButton disabled={!status?.active_profile || saving} onClick={() => void handleApply("auto")}><IconUpload size={16} /> {saving ? "Aplicando" : "Aplicar cambios"}</ActionButton>
               {isSourcesPage ? <ActionButton disabled={!status?.active_profile || saving || !canUpdateRulesets} onClick={() => void handleApply("full")}><IconRefresh size={16} /> Actualizar rulesets</ActionButton> : null}
             </div>
@@ -234,14 +234,14 @@ export function SuricataManagementShell({ children }: { children: React.ReactNod
           ) : null}
         </section>
 
-        <nav className="grid gap-3 md:grid-cols-2 xl:grid-cols-6" aria-label="Secciones de gestión Suricata">
+          <nav className="grid gap-3 md:grid-cols-2 xl:grid-cols-6" aria-label="Secciones de gestión Suricata">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = pathname === item.href;
             return (
-              <Link className={`group flex items-center gap-2 rounded border p-2 transition hover:-translate-y-0.5 ${active ? "border-soc-primary/65 bg-soc-blue/20 text-white shadow-[0_0_34px_rgba(77,142,255,0.18)]" : "border-soc-outline/70 bg-soc-low/80 text-soc-muted hover:border-soc-primary/35 hover:bg-soc-blue/10 hover:text-white"}`} href={item.href} key={item.href}>
-                <span className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded border ${active ? "border-soc-primary/40 bg-soc-primary/10 text-soc-primary" : "border-soc-outline/70 bg-soc-lowest text-soc-muted group-hover:text-soc-primary"}`}>
-                  <Icon size={20} stroke={1.8} />
+              <Link className={`group flex items-center gap-2.5 rounded border px-2 py-1.5 transition hover:-translate-y-0.5 ${active ? "border-soc-primary/60 bg-soc-blue/18 text-white shadow-[0_0_28px_rgba(77,142,255,0.14)]" : "border-soc-outline/60 bg-soc-low/70 text-soc-muted hover:border-soc-primary/35 hover:bg-soc-blue/10 hover:text-white"}`} href={item.href} key={item.href}>
+                <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded ${active ? "text-soc-primary" : "text-soc-muted group-hover:text-white"}`}>
+                  <Icon size={24} stroke={1.75} />
                 </span>
                 <span className="min-w-0">
                   <span className="block font-mono text-[9px] font-black uppercase tracking-[0.18em] text-soc-primary/80">{item.group}</span>
