@@ -25,7 +25,7 @@ Suricata (IPS) -> NFQUEUE -> iptables OUTPUT
 | `backend/app/geoip.py` | GeoLite2 or ip-api.com fallback, 1h cache |
 | `backend/app/threat_intel.py` | AbuseIPDB check, 24h cache |
 | `backend/app/enricher.py` | Orchestrates resolver + geoip + threat_intel |
-| `backend/app/notifier.py` | Telegram alerts for adult blocks & malicious IPs |
+| `backend/app/notifier.py` | Telegram alerts for enabled Suricata notification rules |
 | `frontend/` | Next.js live dashboard with charts, map, threat badges |
 
 ## Key Modifications
@@ -36,7 +36,7 @@ Suricata (IPS) -> NFQUEUE -> iptables OUTPUT
   - `_resolved.source_hostname` / `.dest_hostname` (DNS PTR, 1h cache)
   - `_geo.source` / `.destination` (country, city, lat, lon, ISP; GeoLite2 or ip-api.com)
   - `_threat.is_malicious` / `.confidence` / `.total_reports` (AbuseIPDB, 24h cache)
-- **Telegram notifier** sends alerts when `[BLOQUEO]` rules trigger or `_threat.is_malicious == true`.
+- **Telegram notifier** sends alerts for `alert` events whose `GID:SID` matches a custom rule or override with `notify_enabled=true` in the active profile, when Telegram is globally enabled and recipients exist.
 
 ## Backend Endpoints
 | Endpoint | Description |
