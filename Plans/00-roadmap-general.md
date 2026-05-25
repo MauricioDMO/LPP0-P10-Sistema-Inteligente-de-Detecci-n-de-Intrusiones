@@ -12,7 +12,7 @@ Evolucionar el proyecto Suricata desde un dashboard SOC/IPS de laboratorio hacia
 - [x] 4. PostgreSQL + ORM + JWT.
 - [x] 5. Gestion Suricata por perfiles, fuentes, overrides y jobs.
 - [x] 6. Listas negras y blancas sobre el motor de reglas gestionadas.
-- [ ] 7. Dashboard de salud del stack.
+- [x] 7. Dashboard de salud del stack.
 - [ ] 9. Captura PCAP bajo demanda.
 - [ ] 10. Timeline de incidentes.
 
