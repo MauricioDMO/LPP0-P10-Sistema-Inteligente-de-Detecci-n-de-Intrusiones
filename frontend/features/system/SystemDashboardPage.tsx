@@ -86,10 +86,10 @@ function PercentBar({ label, value }: { label: string; value: number }) {
 
 function LogDetails({ lines, title }: { lines: string[]; title: string }) {
   return (
-    <details className="rounded-xl border border-soc-outline/60 bg-soc-lowest/55">
-      <summary className="cursor-pointer px-4 py-3 text-sm font-bold text-white">{title}</summary>
+    <details className="min-w-0 overflow-hidden rounded-xl border border-soc-outline/60 bg-soc-lowest/55">
+      <summary className="cursor-pointer break-words px-4 py-3 text-sm font-bold text-white">{title}</summary>
       {lines.length > 0 ? (
-        <pre className="max-h-72 overflow-auto border-t border-soc-outline/45 p-4 whitespace-pre-wrap break-words font-mono text-[11px] leading-5 text-soc-muted">{lines.join("\n")}</pre>
+        <pre className="max-h-72 w-full min-w-0 max-w-full overflow-auto whitespace-pre-wrap break-all border-t border-soc-outline/45 p-4 font-mono text-[11px] leading-5 text-soc-muted [overflow-wrap:anywhere]">{lines.join("\n")}</pre>
       ) : (
         <div className="border-t border-soc-outline/45 px-4 py-3 text-sm text-soc-muted">Sin logs recientes disponibles.</div>
       )}
@@ -225,7 +225,7 @@ export function SystemDashboardPage() {
       <Section title="Contenedores">
         <div className="grid gap-3">
           {containers.map((container) => (
-            <div className="rounded-xl border border-soc-outline/60 bg-soc-lowest/45 p-3" key={container.name}>
+            <div className="min-w-0 rounded-xl border border-soc-outline/60 bg-soc-lowest/45 p-3" key={container.name}>
               <StatusRow label={container.name} value={container.running ? "Contenedor en ejecución" : "Contenedor detenido"} status={container.status} />
               <LogDetails lines={container.logs} title={`Ver logs de ${container.name}`} />
             </div>
