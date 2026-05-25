@@ -11,9 +11,8 @@ Evolucionar el proyecto Suricata desde un dashboard SOC/IPS de laboratorio hacia
 - [x] 3. Retencion Elasticsearch 1 ano y templates versionados.
 - [x] 4. PostgreSQL + ORM + JWT.
 - [x] 5. Gestion Suricata por perfiles, fuentes, overrides y jobs.
-- [ ] 6. Listas negras y blancas sobre el motor de reglas gestionadas.
-- [ ] 7. Threat Intel gestionada en base de datos.
-- [ ] 8. Dashboard de salud del stack.
+- [x] 6. Listas negras y blancas sobre el motor de reglas gestionadas.
+- [ ] 7. Dashboard de salud del stack.
 - [ ] 9. Captura PCAP bajo demanda.
 - [ ] 10. Timeline de incidentes.
 
@@ -25,7 +24,6 @@ Evolucionar el proyecto Suricata desde un dashboard SOC/IPS de laboratorio hacia
 - `04-postgres-orm-auth-jwt.md`
 - `05-gestion-reglas-suricata.md`
 - `06-listas-negras-blancas.md`
-- `07-threat-intel-db.md`
 - `08-dashboard-salud-stack.md`
 - `09-captura-pcap.md`
 - `10-timeline-incidentes.md`
