@@ -70,18 +70,21 @@ body {
     radial-gradient(circle at 86% 2%, rgba(223, 116, 18, 0.16), transparent 24rem),
     radial-gradient(circle at 78% 78%, rgba(239, 68, 68, 0.12), transparent 22rem),
     linear-gradient(135deg, #020617 0%, #0b0e15 48%, #10131a 100%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
   color: var(--foreground);
   font-family: var(--font-geist-sans), Inter, system-ui, sans-serif;
 }
 
 body::before {
-  background-image:
-    linear-gradient(rgba(173, 198, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(173, 198, 255, 0.035) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(173, 198, 255, 0.08), transparent 34rem),
+    linear-gradient(180deg, rgba(173, 198, 255, 0.035), transparent 46rem);
+  background-repeat: no-repeat;
+  background-size: 100% 42rem, 100% 46rem;
   content: "";
   inset: 0;
-  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.72), transparent 82%);
   pointer-events: none;
   position: fixed;
   z-index: -1;
