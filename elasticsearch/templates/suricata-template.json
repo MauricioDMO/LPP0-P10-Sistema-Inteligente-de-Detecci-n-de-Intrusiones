@@ -1,0 +1,139 @@
+{
+  "index_patterns": ["suricata-*"],
+  "priority": 100,
+  "template": {
+    "settings": {
+      "index.lifecycle.name": "suricata-1-year",
+      "number_of_shards": 1,
+      "number_of_replicas": 0
+    },
+    "mappings": {
+      "dynamic": true,
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        },
+        "timestamp": {
+          "type": "date"
+        },
+        "event": {
+          "properties": {
+            "original": {
+              "type": "wildcard"
+            }
+          }
+        },
+        "source": {
+          "properties": {
+            "ip": {
+              "type": "ip"
+            },
+            "port": {
+              "type": "integer"
+            }
+          }
+        },
+        "destination": {
+          "properties": {
+            "ip": {
+              "type": "ip"
+            },
+            "port": {
+              "type": "integer"
+            }
+          }
+        },
+        "suricata": {
+          "properties": {
+            "eve": {
+              "properties": {
+                "event_type": {
+                  "type": "keyword"
+                },
+                "src_ip": {
+                  "type": "ip"
+                },
+                "dest_ip": {
+                  "type": "ip"
+                },
+                "src_port": {
+                  "type": "integer"
+                },
+                "dest_port": {
+                  "type": "integer"
+                },
+                "proto": {
+                  "type": "keyword"
+                },
+                "alert": {
+                  "properties": {
+                    "signature": {
+                      "type": "keyword"
+                    },
+                    "category": {
+                      "type": "keyword"
+                    },
+                    "severity": {
+                      "type": "integer"
+                    },
+                    "action": {
+                      "type": "keyword"
+                    },
+                    "gid": {
+                      "type": "integer"
+                    },
+                    "signature_id": {
+                      "type": "long"
+                    },
+                    "rev": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "dns": {
+                  "properties": {
+                    "rrname": {
+                      "type": "keyword"
+                    },
+                    "type": {
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "http": {
+                  "properties": {
+                    "hostname": {
+                      "type": "keyword"
+                    },
+                    "url": {
+                      "type": "wildcard"
+                    },
+                    "http_user_agent": {
+                      "type": "keyword"
+                    },
+                    "status": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "tls": {
+                  "properties": {
+                    "sni": {
+                      "type": "keyword"
+                    },
+                    "subject": {
+                      "type": "keyword"
+                    },
+                    "issuerdn": {
+                      "type": "keyword"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

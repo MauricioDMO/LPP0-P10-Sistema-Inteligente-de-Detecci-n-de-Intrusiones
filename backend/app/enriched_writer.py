@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 
 from .config import settings
 from .es_client import es
+from . import system_state
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,10 @@ _template_ready = False
 
 def _template_name() -> str:
     return f"{settings.elasticsearch_enriched_write_index}-template"
+
+
+def template_name() -> str:
+    return _template_name()
 
 
 def _index_name(event: dict) -> str:
@@ -73,8 +78,10 @@ async def ensure_enriched_template() -> None:
 
     template = {
         "index_patterns": [f"{settings.elasticsearch_enriched_write_index}-*"],
+        "priority": 200,
         "template": {
             "settings": {
+                "index.lifecycle.name": "suricata-1-year",
                 "number_of_shards": 1,
                 "number_of_replicas": 0,
             },
@@ -182,4 +189,5 @@ async def persist_enriched_event(event: dict) -> None:
             document=_add_geo_points(event),
         )
     except Exception as exc:
+        system_state.record_enriched_write_error(exc)
         logger.warning("No se pudo persistir evento enriquecido: %s", exc)

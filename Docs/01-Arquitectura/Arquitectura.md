@@ -1,39 +1,16 @@
 # Arquitectura
 
-El proyecto implementa un sistema de monitoreo de red con dos salidas complementarias:
+El proyecto implementa monitoreo de red con dos rutas complementarias:
 
-- Historica: eventos almacenados en Elasticsearch para busqueda desde el backend.
-- Realtime: eventos publicados en Redis Pub/Sub para consumidores en vivo.
+- Historica: eventos persistidos en Elasticsearch para consultas y analytics.
+- Realtime: eventos publicados por Redis Pub/Sub y retransmitidos al frontend por WebSocket.
 
-## Flujo principal
-
-```text
-Trafico del host
-  -> Suricata
-  -> eve.json
-  -> Filebeat
-  -> Logstash
-  -> Elasticsearch
-  -> Redis canal suricata -> backend FastAPI -> frontend Next.js
-```
-
-## Componentes
-
-- Suricata inspecciona trafico y genera eventos EVE JSON en `/var/log/suricata/eve.json`.
-- Filebeat lee `eve.json` con el modulo oficial de Suricata y envia los eventos a Logstash por Beats (`logstash:5044`).
-- Logstash recibe los eventos y los publica en dos destinos: Elasticsearch y Redis.
-- Elasticsearch guarda eventos en indices diarios `suricata-YYYY.MM.dd`.
-- Backend FastAPI consulta Elasticsearch para historico y escucha Redis para realtime.
-- Redis publica eventos en el canal `suricata` para consumo inmediato.
-- Backend enriquece eventos con DNS reverso, GeoIP y AbuseIPDB, y puede notificar por Telegram.
-- Frontend Next.js muestra vistas en vivo, historicas, bloqueos, rankings y mapa geografico.
-
-## Diagrama
+## Flujo Principal
 
 ```mermaid
 flowchart TD
-    A[Interfaz de red del host] --> B[Suricata]
-    B --> C[eve.json en volumen suricata-logs]
+    A[Host / trafico de red] --> B[Suricata IDS/IPS]
+    B --> C[eve.json]
     C --> D[Filebeat]
     D --> E[Logstash]
     E --> F[Elasticsearch]
@@ -41,87 +18,70 @@ flowchart TD
     F --> H[Backend FastAPI]
     G --> H
     H --> I[Frontend Next.js]
+    H --> J[PostgreSQL]
 ```
 
-## Decisiones tecnicas
+Para el detalle de rutas historica/realtime, endpoints y consumo frontend, ver [Flujo del proyecto, backend y frontend](Flujo-y-Backend.md).
+
+## Componentes
+
+| Componente | Responsabilidad | Documento |
+| --- | --- | --- |
+| Suricata | Captura/inspeccion IDS/IPS y genera EVE JSON. | [Suricata](../02-Componentes/Suricata.md) |
+| Filebeat | Lee `eve.json` y envia eventos a Logstash. | [Filebeat](../02-Componentes/Filebeat.md) |
+| Logstash | Replica eventos hacia Elasticsearch y Redis. | [Logstash](../02-Componentes/Logstash.md) |
+| Elasticsearch | Almacena historico en indices diarios. | [Elasticsearch](../02-Componentes/Elasticsearch.md) |
+| Redis | Canal realtime sin persistencia. | [Redis](../02-Componentes/Redis.md) |
+| Backend FastAPI | Auth, API, WebSocket, enriquecimiento y gestion Suricata. | [API](../02-Componentes/backend/API.md) |
+| PostgreSQL | Usuarios, roles, perfiles, reglas y configuracion administrativa. | [PostgreSQL y Auth](../02-Componentes/PostgreSQL-Auth.md) |
+| Frontend Next.js | Dashboards, panel Suricata y consumo REST/WebSocket. | [Flujo backend/frontend](Flujo-y-Backend.md) |
+
+## Decisiones Tecnicas
 
 ### Docker Compose
 
-El stack se levanta con Compose para mantener una configuracion reproducible de servicios, volumenes, puertos y dependencias.
-
-Archivos principales:
+El stack usa Compose para reproducir servicios, volumenes, red y dependencias.
 
 - `docker-compose.yml`: desarrollo/laboratorio.
-- `docker-compose.prod.yml`: produccion basica con puertos publicados en `127.0.0.1`.
+- `docker-compose.prod.yml`: produccion basica con puertos restringidos a `127.0.0.1`.
 
-### Suricata en modo IPS por defecto
+### IPS Por Defecto
 
-`.env.example` define `SURICATA_MODE=ips`. En este modo, el contenedor usa `NFQUEUE` para inspeccionar trafico saliente y permitir que reglas `reject` o `drop` bloqueen conexiones.
+`.env.example` define `SURICATA_MODE=ips`. En este modo Suricata usa NFQUEUE para inspeccionar trafico saliente y permitir bloqueo con reglas `drop` o `reject`.
 
-Tambien existe modo IDS:
+El modo IDS queda disponible para captura pasiva por interfaz. Variables completas en [Variables de entorno](../05-Referencia/Variables-Entorno.md).
 
-```env
-SURICATA_MODE=ids
-SURICATA_INTERFACE=wlp0s20f3
-```
+### Logstash Como Distribuidor
 
-IDS es captura pasiva por interfaz. IPS es bloqueo activo.
+Filebeat solo permite un output activo. Logstash centraliza la entrada Beats y replica hacia Elasticsearch para historico y Redis para baja latencia.
 
-### Logstash como distribuidor
+### Redis Solo Realtime
 
-Filebeat solo permite un output activo. Como el proyecto necesita guardar historico en Elasticsearch y emitir eventos en tiempo real por Redis, Filebeat envia a Logstash y Logstash replica hacia ambos destinos.
+Redis no es fuente de verdad. Si no hay suscriptores, Pub/Sub pierde el mensaje. Elasticsearch conserva el historico.
 
-### Redis Pub/Sub
+### Elasticsearch Single-Node
 
-Redis se usa como canal realtime, no como almacenamiento. Si no hay suscriptores conectados, los mensajes publicados se pierden. Elasticsearch sigue siendo la fuente historica.
+La configuracion single-node reduce complejidad para laboratorio y demos, pero no ofrece alta disponibilidad.
 
-### Elasticsearch single-node
+## Puertos Y Volumenes
 
-Elasticsearch corre como nodo unico para reducir complejidad. Esto es suficiente para laboratorio y demos, pero no entrega alta disponibilidad.
+Puertos, variables, comandos de validacion y modo produccion estan centralizados en:
 
-## Puertos
+- [Variables de entorno](../05-Referencia/Variables-Entorno.md)
+- [Comandos](../05-Referencia/Comandos.md)
+- [Levantamiento en desarrollo](../03-Operacion/Levantamiento-Desarrollo.md)
+- [Levantamiento en produccion](../03-Operacion/Levantamiento-Produccion.md)
 
-Desarrollo:
+Volumenes persistentes principales:
 
-- Elasticsearch: `localhost:9200`
-- Redis: `localhost:6379`
-- Backend: `localhost:8000`
-- Frontend: `localhost:3000`
+- `suricata-logs`: `eve.json` y logs compartidos con Filebeat.
+- `suricata-rules`: reglas runtime generadas por `suricata-update`.
+- `filebeat-data`: offsets de lectura.
+- `esdata` y `eslogs`: datos y logs de Elasticsearch.
+- `postgres-data`: usuarios, roles y configuracion administrativa.
 
-Produccion basica:
+Redis no tiene volumen porque solo se usa para Pub/Sub.
 
-- Elasticsearch: `127.0.0.1:9200`
-- Redis: `127.0.0.1:6379`
-- Backend: `127.0.0.1:8000`
-- Frontend: `127.0.0.1:3000`
+## Riesgos
 
-Logstash escucha Beats dentro de la red Docker en el puerto `5044`; no se publica al host.
-
-## Volumenes
-
-- `suricata-logs`: contiene `eve.json` y logs de Suricata; lo comparten Suricata y Filebeat.
-- `filebeat-data`: guarda offsets para evitar relecturas completas tras reinicios.
-- `esdata`: datos indexados de Elasticsearch.
-- `eslogs`: logs internos de Elasticsearch.
-
-El frontend no define volumen persistente; se construye desde `frontend/` y se expone en el puerto `3000`.
-
-Redis no tiene volumen persistente porque se usa solo para Pub/Sub.
-
-## Riesgos conocidos
-
-- Suricata requiere privilegios elevados y `network_mode: host`.
-- IPS modifica reglas `iptables`/`ip6tables` en `OUTPUT` y `FORWARD` mientras el contenedor esta activo.
-- Elasticsearch, Redis, Backend y Frontend no tienen autenticacion en la configuracion actual.
-- Elasticsearch corre en single-node.
-- Redis Pub/Sub no persiste mensajes.
-- `SURICATA_INTERFACE` debe coincidir con interfaces reales cuando se usa modo IDS.
-- `kibana/` existe en el repositorio, pero Kibana no forma parte del stack activo de Compose.
-
-## Mejoras futuras
-
-- Habilitar seguridad de Elastic con usuarios, contrasenas y TLS.
-- Agregar autenticacion a Redis o restringirlo completamente a red interna.
-- Definir politicas de retencion y backup para Elasticsearch.
-- Agregar monitoreo de salud y recursos.
-- Agregar autenticacion y control de acceso al dashboard.
+Los riesgos y hardening recomendado estan en [Seguridad](../05-Referencia/Seguridad.md).

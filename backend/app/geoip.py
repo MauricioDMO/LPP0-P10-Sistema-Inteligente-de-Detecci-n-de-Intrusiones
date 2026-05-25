@@ -14,6 +14,10 @@ GEOIP_DB_PATH = os.getenv("BACKEND_GEOIP_DB_PATH", "/data/GeoLite2-City.mmdb")
 
 _reader = None
 
+
+def geoip_database_available() -> bool:
+    return os.path.exists(GEOIP_DB_PATH)
+
 def _load_geoip_reader():
     global _reader
     if _reader is not None:

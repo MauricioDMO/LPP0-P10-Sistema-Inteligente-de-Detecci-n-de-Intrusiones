@@ -36,27 +36,31 @@ Volumenes:
 
 ## Validacion rapida
 
-Estado HTTP:
+Usar [salud del stack](../05-Referencia/Comandos.md#salud-del-stack) y [Inicio y verificacion](../03-Operacion/Inicio-y-Verificacion.md#2-elasticsearch).
+
+## Retencion y templates
+
+El stack define una politica ILM de 1 ano y templates versionados para indices crudos y enriquecidos:
+
+- `elasticsearch/ilm/suricata-ilm.json`: politica `suricata-1-year`, elimina indices despues de 365 dias.
+- `elasticsearch/templates/suricata-template.json`: template para `suricata-*`.
+- `elasticsearch/templates/suricata-enriched-template.json`: template para `suricata-enriched-*`, con `_geo.source.location` y `_geo.destination.location` como `geo_point`.
+
+El servicio `elasticsearch-setup` aplica estos recursos cuando Elasticsearch esta saludable. Tambien puede ejecutarse manualmente:
 
 ```bash
-curl http://localhost:9200
+docker compose run --rm elasticsearch-setup
 ```
 
-Salud del cluster:
+Validacion:
 
 ```bash
-curl http://localhost:9200/_cluster/health
-```
-
-Indices:
-
-```bash
-curl http://localhost:9200/_cat/indices?v
+curl http://localhost:9200/_ilm/policy/suricata-1-year
+curl http://localhost:9200/_index_template/suricata-template
+curl http://localhost:9200/_index_template/suricata-enriched-template
+curl http://localhost:9200/suricata-enriched-*/_mapping
 ```
 
 ## Riesgos
 
-- Nodo unico sin alta disponibilidad.
-- Seguridad deshabilitada.
-- Requiere `vm.max_map_count=262144` en algunos hosts Linux.
-- Heap de 512 MB es para laboratorio o carga baja.
+Riesgos y hardening: [Seguridad](../05-Referencia/Seguridad.md).

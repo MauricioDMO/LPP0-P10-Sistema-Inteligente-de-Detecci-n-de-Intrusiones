@@ -35,17 +35,7 @@ Compose ejecuta Filebeat como `root` y con `--strict.perms=false` para evitar pr
 
 ## Validacion rapida
 
-Ver logs:
-
-```bash
-docker compose logs --tail=100 filebeat
-```
-
-Buscar conexion con Logstash:
-
-```bash
-docker logs filebeat | grep -i logstash
-```
+Usar [logs](../05-Referencia/Comandos.md#logs) y [Inicio y verificacion](../03-Operacion/Inicio-y-Verificacion.md#4-logstash-y-filebeat).
 
 ## Riesgos
 

@@ -1,114 +1,107 @@
-# Levantamiento en Desarrollo
+# Levantamiento En Desarrollo
 
-Guia para levantar el stack en entorno local o laboratorio usando `docker-compose.yml`.
+Guia para levantar el stack local/laboratorio con `docker-compose.yml`.
 
-## 1. Prerequisitos
+## Prerequisitos
 
 - Docker Engine activo.
 - Docker Compose disponible.
 - Permisos para ejecutar Docker.
 - Linux recomendado para captura/IPS con Suricata.
 
-Ver interfaces disponibles, util si usaras modo IDS:
+Variables completas: [Variables de entorno](../05-Referencia/Variables-Entorno.md).
 
-```bash
-ip -o link show | awk -F': ' '{print $2}'
-```
-
-## 2. Preparar variables
-
-Desde la raiz del proyecto:
+## Preparar `.env`
 
 ```bash
 cp .env.example .env
 ```
 
-Revisar `.env`:
+Revisa especialmente:
 
-```env
-STACK_VERSION=8.19.14
-SURICATA_MODE=ips
-SURICATA_INTERFACE=wlp0s20f3
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
+- `SURICATA_MODE`
+- `SURICATA_INTERFACE` si usas IDS.
+- `BACKEND_JWT_SECRET`
+- `BACKEND_INITIAL_ADMIN_PASSWORD`
+- URLs `NEXT_PUBLIC_API_URL` y `NEXT_PUBLIC_WS_URL`.
+
+Para laboratorio puedes usar credenciales por defecto. En redes compartidas, cambia secretos antes del primer arranque.
+
+## Levantar
+
+Opcion recomendada:
+
+```bash
+./scripts/dev-up.sh
 ```
 
-Notas:
+El script levanta servicios, puede crear un admin nuevo, desactiva el bootstrap `admin` si corresponde, aplica el perfil activo y valida los puntos principales.
 
-- `SURICATA_MODE=ips` es el modo por defecto del proyecto.
-- `SURICATA_INTERFACE` solo se usa en modo `ids`.
-- Si cambias a `SURICATA_MODE=ids`, usa una interfaz real del host.
-
-## 3. Levantar el stack
+Opcion manual:
 
 ```bash
 docker compose up -d --build
 ```
 
-Servicios levantados:
+Comandos comunes: [Comandos de referencia](../05-Referencia/Comandos.md).
+
+## Servicios
 
 - `elasticsearch`
 - `suricata`
 - `redis`
+- `postgres`
+- `elasticsearch-setup`
 - `logstash`
 - `filebeat`
 - `backend`
 - `frontend`
 
-## 4. Verificar arranque
+## Verificar
+
+Verificacion rapida:
 
 ```bash
 docker compose ps
-curl http://localhost:9200
 curl http://localhost:8000/api/events/health
-docker exec redis redis-cli PING
+curl http://localhost:3000
 ```
 
-Frontend disponible en:
+Checklist completo: [Inicio y verificacion](Inicio-y-Verificacion.md).
 
-```text
-http://localhost:3000
-```
+Frontend: `http://localhost:3000`
 
-## 5. Generar trafico de prueba
+Credenciales bootstrap de laboratorio: `admin` / `admin123`.
+
+## Aplicar Reglas Suricata
+
+En un arranque limpio, aplica el perfil activo desde el panel `/suricata` o por consola usando [Aplicar perfil Suricata](../05-Referencia/Comandos.md#aplicar-perfil-suricata).
+
+Valida IPS y reglas con [IPS y reglas](../05-Referencia/Comandos.md#ips-y-reglas).
+
+## Generar Trafico De Prueba
+
+Usa los comandos de [Redis realtime](../05-Referencia/Comandos.md#redis-realtime) y revisa `/live`.
+
+Para ejecutar las verificaciones principales:
 
 ```bash
-ping -c 4 8.8.8.8
-curl http://neverssl.com
-curl http://example.com
+./scripts/dev-check.sh
 ```
 
-Luego revisa:
-
-```bash
-curl http://localhost:9200/_cat/indices?v
-curl http://localhost:8000/api/events/latest?limit=3
-```
-
-Para validar realtime:
-
-```bash
-docker exec redis redis-cli SUBSCRIBE suricata
-```
-
-Genera trafico desde otra terminal y deberias ver eventos publicados.
-
-El dashboard Next.js tambien debe actualizarse en `http://localhost:3000` si el backend esta conectado por WebSocket.
-
-## 6. Apagar
-
-Apagado normal:
+## Apagar
 
 ```bash
 docker compose down
 ```
 
-Apagado con limpieza de volumenes, destructivo:
+Limpieza destructiva:
 
 ```bash
 docker compose down -v
 ```
 
-## Siguiente paso
+## Si Algo Falla
 
-Si algo no aparece, usa [Inicio y Verificacion](Inicio-y-Verificacion.md) y luego [Troubleshooting](Troubleshooting.md).
+1. [Inicio y verificacion](Inicio-y-Verificacion.md)
+2. [Troubleshooting](Troubleshooting.md)

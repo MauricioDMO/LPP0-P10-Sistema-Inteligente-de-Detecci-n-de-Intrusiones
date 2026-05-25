@@ -71,7 +71,20 @@ export type BlockedAnalytics = {
   top_signatures: Array<{ signature: string; count: number }>;
   top_source_ips: Array<{ ip: string; count: number }>;
   top_destination_ips: Array<{ ip: string; count: number }>;
+  unique_destination_ips?: number;
+  active_blocking_rules?: number;
+  last_blocked_at?: string | null;
+  top_rule?: string | null;
   by_type: Array<{ type: string; count: number }>;
+};
+
+export type AnalyticsEventsResponse<TEvent> = {
+  hours: number;
+  limit: number;
+  offset: number;
+  total: number;
+  block_source?: string;
+  events: TEvent[];
 };
 
 export type HistoricalGeoPoint = {

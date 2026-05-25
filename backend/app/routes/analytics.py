@@ -1,10 +1,15 @@
 """Endpoints de analisis historico sobre Elasticsearch."""
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 from ..analytics import service
+from ..dependencies.auth import require_roles
 
-router = APIRouter(prefix="/api/analytics", tags=["analytics"])
+router = APIRouter(
+    prefix="/api/analytics",
+    tags=["analytics"],
+    dependencies=[Depends(require_roles("admin", "analyst", "viewer"))],
+)
 
 
 @router.get("/overview")
@@ -48,6 +53,62 @@ async def analytics_blocked(
 ):
     """Analisis especifico de reglas de bloqueo."""
     return await service.get_blocked(hours=hours, size=size)
+
+
+@router.get("/events")
+async def analytics_events(
+    hours: int = Query(24, ge=1, le=168),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    event_type: str = Query("all", pattern="^(all|alert|dns|tls|http|flow|ip)$"),
+    only_blocked: bool = Query(False),
+    source_ip: str | None = Query(None),
+    destination_ip: str | None = Query(None),
+    domain: str | None = Query(None),
+    signature: str | None = Query(None),
+    severity: int | None = Query(None, ge=1, le=4),
+):
+    """Eventos historicos reales con filtros de investigacion."""
+    return await service.get_events(
+        hours=hours,
+        limit=limit,
+        offset=offset,
+        event_type=event_type,
+        only_blocked=only_blocked,
+        source_ip=source_ip,
+        destination_ip=destination_ip,
+        domain=domain,
+        signature=signature,
+        severity=severity,
+    )
+
+
+@router.get("/blocked/events")
+async def analytics_blocked_events(
+    hours: int = Query(24, ge=1, le=168),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    event_type: str = Query("all", pattern="^(all|alert|dns|tls|http|flow|ip)$"),
+    source_ip: str | None = Query(None),
+    destination_ip: str | None = Query(None),
+    domain: str | None = Query(None),
+    signature: str | None = Query(None),
+    severity: int | None = Query(None, ge=1, le=4),
+    block_source: str = Query("all", pattern="^(all|blacklist|local_rule|override|external_rule|seed|other)$"),
+):
+    """Eventos bloqueados recientes con explicacion operacional."""
+    return await service.get_blocked_events(
+        hours=hours,
+        limit=limit,
+        offset=offset,
+        event_type=event_type,
+        source_ip=source_ip,
+        destination_ip=destination_ip,
+        domain=domain,
+        signature=signature,
+        severity=severity,
+        block_source=block_source,
+    )
 
 
 @router.get("/geo")

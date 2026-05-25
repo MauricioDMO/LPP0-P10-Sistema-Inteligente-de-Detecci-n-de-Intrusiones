@@ -5,6 +5,7 @@ WORKDIR /app
 # Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
     gcc \
+    docker.io \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar requirements e instalar dependencias de Python
@@ -17,5 +18,5 @@ COPY . .
 # Exponer puerto
 EXPOSE 8000
 
-# Comando de inicio
-CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Aplicar migraciones antes de iniciar la API
+CMD ["sh", "-c", "alembic upgrade head && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000"]

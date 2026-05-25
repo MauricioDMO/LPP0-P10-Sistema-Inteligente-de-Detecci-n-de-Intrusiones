@@ -18,23 +18,150 @@ def bool_query(hours: int, extra_filters: list | None = None) -> dict:
     return {"bool": {"filter": filters}}
 
 
+def text_match_filter(value: str, fields: list[str]) -> dict:
+    return {
+        "bool": {
+            "should": [
+                {
+                    "wildcard": {
+                        field: {
+                            "value": f"*{value}*",
+                            "case_insensitive": True,
+                        }
+                    }
+                }
+                for field in fields
+            ],
+            "minimum_should_match": 1,
+        }
+    }
+
+
 def blocked_signature_filter(keyword: bool = True) -> dict:
     field = "suricata.eve.alert.signature.keyword" if keyword else "suricata.eve.alert.signature"
     return {
-        "wildcard": {
-            field: {
-                "value": "*BLOQUEO*",
-                "case_insensitive": True,
-            }
+        "bool": {
+            "should": [
+                {
+                    "wildcard": {
+                        field: {
+                            "value": pattern,
+                            "case_insensitive": True,
+                        }
+                    }
+                }
+                for pattern in ("*BLOQUEO*", "*BLOCKED*", "*SURICATA-LIST block*")
+            ],
+            "minimum_should_match": 1,
         }
     }
+
+
+def alert_action_blocked_filter(keyword: bool = True) -> dict:
+    field = "suricata.eve.alert.action.keyword" if keyword else "suricata.eve.alert.action"
+    return {"terms": {field: ["blocked", "drop", "reject"]}}
+
+
+def rule_id_filter(rule_ids: list[tuple[int, int]]) -> dict:
+    clauses = []
+    for gid, sid in rule_ids:
+        clauses.append(
+            {
+                "bool": {
+                    "filter": [
+                        {
+                            "bool": {
+                                "should": [
+                                    {"term": {"suricata.eve.alert.gid": gid}},
+                                    {"term": {"suricata.eve.alert.generator_id": gid}},
+                                ],
+                                "minimum_should_match": 1,
+                            }
+                        },
+                        {
+                            "bool": {
+                                "should": [
+                                    {"term": {"suricata.eve.alert.signature_id": sid}},
+                                    {"term": {"suricata.eve.alert.sid": sid}},
+                                ],
+                                "minimum_should_match": 1,
+                            }
+                        },
+                    ]
+                }
+            }
+        )
+        if gid == 1:
+            clauses.append(
+                {
+                    "bool": {
+                        "should": [
+                            {"term": {"suricata.eve.alert.signature_id": sid}},
+                            {"term": {"suricata.eve.alert.sid": sid}},
+                        ],
+                        "minimum_should_match": 1,
+                    }
+                }
+            )
+    return {
+        "bool": {
+            "should": clauses,
+            "minimum_should_match": 1,
+        }
+    }
+
+
+def blocked_event_filter(rule_ids: list[tuple[int, int]] | None = None, keyword: bool = True) -> dict:
+    should = [blocked_signature_filter(keyword=keyword), alert_action_blocked_filter(keyword=keyword)]
+    if rule_ids:
+        should.append(rule_id_filter(rule_ids))
+    return {"bool": {"should": should, "minimum_should_match": 1}}
 
 
 def alert_filter() -> dict:
     return {"term": {"suricata.eve.event_type": "alert"}}
 
 
-def overview_aggs() -> dict:
+def event_search_filters(
+    event_type: str = "all",
+    only_blocked: bool = False,
+    source_ip: str | None = None,
+    destination_ip: str | None = None,
+    domain: str | None = None,
+    signature: str | None = None,
+    severity: int | None = None,
+) -> list[dict]:
+    filters = []
+    if event_type != "all":
+        filters.append({"term": {"suricata.eve.event_type": event_type}})
+    if only_blocked:
+        filters.append(blocked_event_filter())
+    if source_ip:
+        filters.append({"term": {"source.ip.keyword": source_ip}})
+    if destination_ip:
+        filters.append({"term": {"destination.ip.keyword": destination_ip}})
+    if domain:
+        filters.append(
+            text_match_filter(
+                domain,
+                [
+                    "suricata.eve.dns.queries.rrname.keyword",
+                    "suricata.eve.tls.sni.keyword",
+                    "suricata.eve.http.hostname.keyword",
+                    "suricata.eve.http.url.keyword",
+                    "event.original.keyword",
+                ],
+            )
+        )
+    if signature:
+        filters.append(text_match_filter(signature, ["suricata.eve.alert.signature.keyword"]))
+    if severity is not None:
+        filters.append({"term": {"suricata.eve.alert.severity": severity}})
+    return filters
+
+
+def overview_aggs(blocked_filter: dict | None = None) -> dict:
+    blocked = blocked_filter or blocked_signature_filter()
     return {
         "total": {"value_count": {"field": "@timestamp"}},
         "by_event_type": {
@@ -46,11 +173,12 @@ def overview_aggs() -> dict:
         "unique_source_ips": {"cardinality": {"field": "source.ip.keyword"}},
         "unique_destination_ips": {"cardinality": {"field": "destination.ip.keyword"}},
         "alerts": {"filter": alert_filter()},
-        "blocked": {"filter": blocked_signature_filter()},
+        "blocked": {"filter": blocked},
     }
 
 
-def timeline_aggs(interval: str) -> dict:
+def timeline_aggs(interval: str, blocked_filter: dict | None = None) -> dict:
+    blocked = blocked_filter or blocked_signature_filter()
     return {
         "timeline": {
             "date_histogram": {
@@ -60,7 +188,7 @@ def timeline_aggs(interval: str) -> dict:
             },
             "aggs": {
                 "alerts": {"filter": alert_filter()},
-                "blocked": {"filter": blocked_signature_filter()},
+                "blocked": {"filter": blocked},
                 "critical": {
                     "filter": {"terms": {"suricata.eve.alert.severity": [1, 2]}}
                 },
@@ -112,6 +240,9 @@ def blocked_aggs(size: int) -> dict:
         },
         "source_ips": {"terms": {"field": "source.ip.keyword", "size": size}},
         "dest_ips": {"terms": {"field": "destination.ip.keyword", "size": size}},
+        "unique_dest_ips": {"cardinality": {"field": "destination.ip.keyword"}},
+        "active_rules": {"cardinality": {"field": "suricata.eve.alert.signature.keyword"}},
+        "last_blocked": {"max": {"field": "@timestamp"}},
         "by_type": {
             "terms": {"field": "suricata.eve.event_type.keyword", "size": 10}
         },

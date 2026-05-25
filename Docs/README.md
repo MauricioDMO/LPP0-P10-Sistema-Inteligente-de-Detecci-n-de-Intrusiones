@@ -1,85 +1,61 @@
-# Documentacion del Proyecto Suricata
+# Documentacion Del Proyecto Suricata
 
-Este directorio contiene la documentacion tecnica y operativa del stack de monitoreo de red basado en Suricata, Filebeat, Logstash, Redis, Elasticsearch, FastAPI y Next.js.
+Indice tecnico y operativo del stack Suricata, Filebeat, Logstash, Redis, Elasticsearch, FastAPI, PostgreSQL y Next.js.
 
-El objetivo es que cualquier integrante pueda entender la arquitectura, levantar el sistema y validar el flujo completo sin revisar todos los archivos del repositorio.
-
-## Lectura recomendada
+## Lectura Recomendada
 
 1. [Arquitectura](01-Arquitectura/Arquitectura.md)
-2. [Flujo del proyecto y backend](01-Arquitectura/Flujo-y-Backend.md)
+2. [Flujo backend/frontend](01-Arquitectura/Flujo-y-Backend.md)
 3. [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md)
-4. [Levantamiento en produccion basica](03-Operacion/Levantamiento-Produccion.md)
-5. [Levantamiento gateway](03-Operacion/Levantamiento-Gateway.md)
-6. [Inicio y verificacion](03-Operacion/Inicio-y-Verificacion.md)
-7. [Troubleshooting](03-Operacion/Troubleshooting.md)
+4. [Verificacion end-to-end](03-Operacion/Inicio-y-Verificacion.md)
+5. [Demo y evaluacion](03-Operacion/Demo-Evaluacion.md)
+6. [Panel Suricata](03-Operacion/Manual-Panel-Suricata.md)
+7. [API backend](02-Componentes/backend/API.md)
+8. [Troubleshooting](03-Operacion/Troubleshooting.md)
 
-## Levantar rapido
+## Por Tarea
 
-Desarrollo o laboratorio:
+| Quiero... | Leer |
+| --- | --- |
+| Entender el sistema completo | [Arquitectura](01-Arquitectura/Arquitectura.md) |
+| Entender persistencia vs realtime | [Flujo backend/frontend](01-Arquitectura/Flujo-y-Backend.md) |
+| Levantar el laboratorio | [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md) |
+| Levantar produccion basica | [Levantamiento en produccion](03-Operacion/Levantamiento-Produccion.md) |
+| Validar extremo a extremo | [Inicio y verificacion](03-Operacion/Inicio-y-Verificacion.md) |
+| Preparar exposicion/evidencias | [Demo y evaluacion](03-Operacion/Demo-Evaluacion.md) |
+| Administrar reglas Suricata | [Manual del panel Suricata](03-Operacion/Manual-Panel-Suricata.md) |
+| Consultar endpoints | [API del backend](02-Componentes/backend/API.md) |
+| Resolver fallas | [Troubleshooting](03-Operacion/Troubleshooting.md) |
+| Revisar variables `.env` | [Variables de entorno](05-Referencia/Variables-Entorno.md) |
+| Copiar comandos comunes | [Comandos](05-Referencia/Comandos.md) |
+| Revisar riesgos | [Seguridad](05-Referencia/Seguridad.md) |
 
-```bash
-cp .env.example .env
-docker compose up -d --build
-```
+## Componentes
 
-Produccion basica:
+- [Suricata](02-Componentes/Suricata.md)
+- [Filebeat](02-Componentes/Filebeat.md)
+- [Logstash](02-Componentes/Logstash.md)
+- [Elasticsearch](02-Componentes/Elasticsearch.md)
+- [Redis](02-Componentes/Redis.md)
+- [PostgreSQL y Auth](02-Componentes/PostgreSQL-Auth.md)
+- [API del backend](02-Componentes/backend/API.md)
 
-```bash
-cp .env.example .env
-sudo sysctl -w vm.max_map_count=262144
-docker compose -f docker-compose.prod.yml up -d --build
-```
+## Operacion
 
-Gateway experimental:
+- [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md)
+- [Levantamiento en produccion](03-Operacion/Levantamiento-Produccion.md)
+- [Inicio y verificacion](03-Operacion/Inicio-y-Verificacion.md)
+- [Demo y evaluacion](03-Operacion/Demo-Evaluacion.md)
+- [Manual del panel Suricata](03-Operacion/Manual-Panel-Suricata.md)
+- [Troubleshooting](03-Operacion/Troubleshooting.md)
 
-```bash
-gateway/scripts/start-gateway.sh
-```
+## Referencia
 
-Antes de ejecutar, revisa `.env`. Si cambias a `SURICATA_MODE=ids`, ajusta `SURICATA_INTERFACE` a una interfaz real del host.
+- [Variables de entorno](05-Referencia/Variables-Entorno.md)
+- [Comandos](05-Referencia/Comandos.md)
+- [Seguridad](05-Referencia/Seguridad.md)
 
-## Flujo del sistema
+## Entregables Y Planes
 
-```text
-Trafico de red
-  -> Suricata
-  -> /var/log/suricata/eve.json
-  -> Filebeat
-  -> Logstash
-  -> Elasticsearch
-  -> Redis Pub/Sub -> Backend FastAPI -> Frontend Next.js
-```
-
-El frontend Next.js se levanta como servicio `frontend` y consume la API REST/WebSocket del backend.
-
-## Documentos
-
-- [Arquitectura](01-Arquitectura/Arquitectura.md): flujo completo, decisiones tecnicas, persistencia y riesgos.
-- [Flujo del proyecto y backend](01-Arquitectura/Flujo-y-Backend.md): diagrama y separacion entre historico y tiempo real.
-- [Suricata](02-Componentes/Suricata.md): captura, modo IPS/IDS, reglas y salida EVE JSON.
-- [Filebeat](02-Componentes/Filebeat.md): lectura de `eve.json` y envio a Logstash.
-- [Logstash](02-Componentes/Logstash.md): distribucion a Elasticsearch y Redis.
-- [Redis](02-Componentes/Redis.md): canal Pub/Sub para eventos en tiempo real.
-- [Elasticsearch](02-Componentes/Elasticsearch.md): indexacion y consulta historica.
-- [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md): arranque local/laboratorio.
-- [Levantamiento en produccion](03-Operacion/Levantamiento-Produccion.md): arranque con puertos restringidos a localhost.
-- [Levantamiento gateway](03-Operacion/Levantamiento-Gateway.md): arranque como gateway L3 con NAT, DHCP y NFQUEUE.
-- [Inicio y verificacion](03-Operacion/Inicio-y-Verificacion.md): checklist end-to-end.
-- [Troubleshooting](03-Operacion/Troubleshooting.md): diagnostico de fallas comunes.
-- [Primer documento](04-Entregables/Primer-Doc.md): evidencia historica de la primera entrega.
-
-## Alcance
-
-- Stack dockerizado para laboratorio y produccion basica.
-- Suricata en modo IPS por defecto mediante `SURICATA_MODE=ips`.
-- Pipeline historico con indices diarios `suricata-YYYY.MM.dd` en Elasticsearch.
-- Pipeline realtime con Redis Pub/Sub en el canal `suricata`.
-- Dashboard Next.js en `http://localhost:3000` con vistas live, historico, bloqueos, geografia y rankings.
-- Backend con endpoints `/api/events/*`, `/api/analytics/*` y `WS /ws`.
-- Enriquecimiento de eventos con DNS reverso, GeoIP y AbuseIPDB cuando hay configuracion disponible.
-- Seguridad de Elastic y Redis deshabilitada por simplicidad operativa.
-
-## Nota de seguridad
-
-La configuracion actual no debe exponerse directamente a internet. Para un entorno real, habilita autenticacion, TLS, firewall, control de accesos, backups y monitoreo.
+- [Primer documento](04-Entregables/Primer-Doc.md): documento historico de la primera entrega.
+- [Planes tecnicos](../Plans/README.md): roadmap y propuestas de modulos.

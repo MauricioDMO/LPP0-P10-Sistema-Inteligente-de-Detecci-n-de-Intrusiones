@@ -16,9 +16,9 @@ Archivos principales:
 - `suricata/Dockerfile`: parte de `jasonish/suricata:latest` e instala `iptables-nft` para modo IPS con NFQUEUE.
 - `suricata/entrypoint.sh`: decide si arranca en modo `ips` o `ids`.
 - `suricata/config/suricata.yaml`: configuracion principal.
-- `suricata/config/rules/suricata.rules`: reglas locales base.
-- `suricata/config/rules/youtube-block.rules`: reglas de bloqueo/deteccion para YouTube.
-- `suricata/config/rules/adult-block.rules`: reglas de bloqueo/deteccion para sitios adultos.
+- `backend/app/db/seed/suricata.py`: seed inicial de fuentes, perfil base y reglas locales gestionadas desde la UI.
+- `backend/app/routes/suricata.py`: API de perfiles, fuentes, overrides, reglas custom, apply jobs y notificaciones.
+- volumen Docker `suricata-rules`: salida runtime de `suricata-update`, incluyendo `suricata.rules`.
 
 Compose ejecuta Suricata con:
 
@@ -26,6 +26,7 @@ Compose ejecuta Suricata con:
 - `privileged: true`
 - capacidades `NET_ADMIN` y `NET_RAW`
 - volumen `suricata-logs:/var/log/suricata`
+- volumen `suricata-rules:/var/lib/suricata/rules`
 
 ## Modos de ejecucion
 
@@ -50,54 +51,43 @@ En IDS, Suricata captura pasivamente desde una o varias interfaces separadas por
 SURICATA_INTERFACE=wlp0s20f3,virbr0
 ```
 
-## Reglas locales
+## Reglas Locales
 
-Directorio: `suricata/config/rules/`
+Las reglas locales ya no se cargan desde archivos estaticos del repo. Se guardan en PostgreSQL como **Reglas personalizadas** y se administran desde el panel `/suricata`.
 
-Reglas actuales:
+El seed inicial en `backend/app/db/seed/suricata.py` crea, si hace falta:
 
-- alerta ICMP para validar `ping`.
-- bloqueo de `example.com` por TLS SNI.
-- bloqueo de `example.com` por DNS.
-- bloqueo de `example.com` por HTTP host.
-- bloqueo/deteccion de YouTube y YouTube Music por TLS, HTTP y DNS.
-- bloqueo/deteccion de sitios adultos por TLS, HTTP y DNS.
+- perfil base activo.
+- fuentes externas compatibles con `suricata-update`.
+- bloqueo/deteccion de YouTube y YouTube Music por TLS, HTTP y DNS, con firmas sembradas que usan prefijo `[BLOCKED]`.
+- bloqueo/deteccion de sitios adultos por TLS, HTTP y DNS, con firmas sembradas que usan prefijo `[BLOQUEO]`.
 - bloqueo UDP/443 para reducir evasión por QUIC/HTTP3 en sitios adultos.
 
-Los archivos cargados por `suricata/config/suricata.yaml` son:
+`suricata-update` genera el archivo runtime en el volumen `suricata-rules`. El YAML solo carga:
 
 ```yaml
 rule-files:
   - suricata.rules
-  - youtube-block.rules
-  - adult-block.rules
 ```
+
+Para activar o desactivar una regla local, usar el checkbox de **Reglas personalizadas** en la interfaz y luego **Aplicar configuracion**.
+
+## Gestion desde UI
+
+La gestion operativa se hace desde `/suricata`. Los cambios guardados en PostgreSQL no modifican Suricata hasta presionar **Aplicar configuracion**.
+
+Manual completo: [Manual del panel Suricata](../03-Operacion/Manual-Panel-Suricata.md).
+
+## Notificaciones
+
+Las reglas custom y overrides pueden marcarse con `notify_enabled`. Ese campo no cambia la regla ni el archivo generado; solo indica al backend que debe notificar eventos `alert` cuyo `GID:SID` coincida con el perfil activo.
+
+La configuracion global de Telegram vive en `suricata_notification_settings` e incluye activacion global, destinatarios, buffer, minutos de agrupacion y zona horaria. El token del bot se configura fuera de la base de datos mediante `BACKEND_TELEGRAM_BOT_TOKEN`.
 
 ## Validacion rapida
 
-Ver logs:
-
-```bash
-docker compose logs --tail=100 suricata
-```
-
-Generar trafico:
-
-```bash
-ping -c 4 8.8.8.8
-curl http://neverssl.com
-curl http://example.com
-```
-
-Confirmar que el flujo llega a Elasticsearch:
-
-```bash
-curl http://localhost:9200/_cat/indices?v
-```
+Usar [IPS y reglas](../05-Referencia/Comandos.md#ips-y-reglas) y el checklist [Inicio y verificacion](../03-Operacion/Inicio-y-Verificacion.md).
 
 ## Riesgos
 
-- Requiere privilegios elevados.
-- En modo IPS modifica reglas `iptables`/`ip6tables` en `OUTPUT` y `FORWARD` mientras el contenedor esta activo.
-- En modo IDS depende de que `SURICATA_INTERFACE` exista en el host.
-- No tiene healthcheck propio en Compose.
+Riesgos y recomendaciones IPS: [Seguridad](../05-Referencia/Seguridad.md#reglas-ips).

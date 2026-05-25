@@ -1,4 +1,6 @@
-export type EventFilterType = "all" | "alert" | "blocked" | "dns" | "http" | "tls";
+export type EventFilterType = "all" | "alert" | "blocked" | "dns" | "http" | "tls" | "flow" | "ip";
+
+export type BlockSource = "blacklist" | "local_rule" | "override" | "external_rule" | "seed" | "other";
 
 export type ConnectionStatus = "connected" | "disconnected" | "error";
 
@@ -25,6 +27,10 @@ export type SuricataEvent = {
   network?: { transport?: string; protocol?: string };
   alert?: {
     signature?: string;
+    signature_id?: number;
+    sid?: number;
+    gid?: number;
+    generator_id?: number;
     severity?: number;
     category?: string;
   };
@@ -59,6 +65,18 @@ export type SuricataEvent = {
     is_malicious?: boolean;
     confidence?: number;
     total_reports?: number;
+  };
+  _blocked?: {
+    action?: string;
+    source?: BlockSource;
+    domain?: string | null;
+    gid?: number | null;
+    sid?: number | null;
+    rule_name?: string | null;
+    explanation?: string;
+  };
+  event?: {
+    original?: string;
   };
   type?: string;
 };

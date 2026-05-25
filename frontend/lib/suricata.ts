@@ -1,4 +1,4 @@
-import type { DashboardStats, EventFilterType, SuricataEvent } from "@/types/suricata";
+import type { BlockSource, DashboardStats, EventFilterType, SuricataEvent } from "@/types/suricata";
 
 const RELEVANT_TYPES = new Set(["alert", "dns", "http", "tls", "ssh", "ftp", "smtp", "flow"]);
 
@@ -31,8 +31,8 @@ export function getProto(evt: SuricataEvent): string {
 }
 
 export function isBlocked(evt: SuricataEvent): boolean {
-  const signature = evt.suricata?.eve?.alert?.signature ?? evt.alert?.signature ?? "";
-  return signature.toLowerCase().includes("bloqueo");
+  const signature = getSignature(evt).toLowerCase();
+  return Boolean(evt._blocked) || signature.includes("bloqueo") || signature.includes("blocked") || signature.includes("suricata-list block");
 }
 
 export function getSeverity(evt: SuricataEvent): number {
@@ -49,6 +49,61 @@ export function getSeverityLabel(severity: number): string {
 
 export function getCategory(evt: SuricataEvent): string {
   return evt.suricata?.eve?.alert?.category ?? evt.alert?.category ?? "";
+}
+
+export function getSignature(evt: SuricataEvent): string {
+  return evt.suricata?.eve?.alert?.signature ?? evt.alert?.signature ?? "";
+}
+
+export function getSid(evt: SuricataEvent): number | null {
+  return evt._blocked?.sid ?? evt.suricata?.eve?.alert?.signature_id ?? evt.suricata?.eve?.alert?.sid ?? evt.alert?.signature_id ?? evt.alert?.sid ?? null;
+}
+
+export function getGid(evt: SuricataEvent): number | null {
+  return evt._blocked?.gid ?? evt.suricata?.eve?.alert?.gid ?? evt.suricata?.eve?.alert?.generator_id ?? evt.alert?.gid ?? evt.alert?.generator_id ?? 1;
+}
+
+export function getDomain(evt: SuricataEvent): string {
+  const eve = getEve(evt);
+  return evt._blocked?.domain ?? eve.dns?.queries?.[0]?.rrname ?? eve.tls?.sni ?? eve.http?.hostname ?? eve.http?.url ?? "";
+}
+
+export function getBlockSource(evt: SuricataEvent): BlockSource {
+  if (evt._blocked?.source) return evt._blocked.source;
+  const signature = getSignature(evt).toLowerCase();
+  const sid = getSid(evt);
+  if (signature.includes("suricata-list block") || signature.includes("blacklist")) return "blacklist";
+  if (sid && ((sid >= 1001001 && sid <= 1001999) || (sid >= 2000000 && sid <= 2009999))) return "seed";
+  if (signature.includes("[blocked]") || signature.includes("[bloqueo]")) return "local_rule";
+  if (signature.includes("override")) return "override";
+  if (signature) return "external_rule";
+  return "other";
+}
+
+export function getBlockAction(evt: SuricataEvent): string {
+  if (evt._blocked?.action) return evt._blocked.action;
+  const signature = getSignature(evt).toLowerCase();
+  if (signature.includes("suricata-list block") || signature.includes("blacklist")) return "blacklist";
+  if (signature.includes("drop")) return "drop";
+  if (signature.includes("reject") || signature.includes("bloqueo") || signature.includes("blocked")) return "reject";
+  return "unknown";
+}
+
+export function explainBlock(evt: SuricataEvent): string {
+  if (evt._blocked?.explanation) return evt._blocked.explanation;
+  const domain = getDomain(evt) || "destino sin dominio";
+  const signature = getSignature(evt) || "regla sin firma";
+  const dst = getDstIP(evt) || "IP destino desconocida";
+  const type = getEventType(evt).toUpperCase() || "EVE";
+  const sourceLabels: Record<BlockSource, string> = {
+    blacklist: "lista negra",
+    local_rule: "regla local",
+    override: "override",
+    external_rule: "regla externa",
+    seed: "regla seed",
+    other: "regla",
+  };
+  return `${domain} bloqueado por ${sourceLabels[getBlockSource(evt)]}: ${signature}, destino ${dst}, evento ${type}`;
 }
 
 export function getMessage(evt: SuricataEvent): string {
@@ -177,6 +232,8 @@ export function matchesFilter(
   if (filterType === "dns" && eventType !== "dns") return false;
   if (filterType === "http" && eventType !== "http") return false;
   if (filterType === "tls" && eventType !== "tls") return false;
+  if (filterType === "flow" && eventType !== "flow") return false;
+  if (filterType === "ip" && eventType !== "ip") return false;
   if (filterSeverity > 0 && getSeverity(evt) !== filterSeverity) return false;
 
   const query = filterSearch.trim().toLowerCase();
@@ -184,6 +241,8 @@ export function matchesFilter(
 
   const values = [
     getMessage(evt),
+    getDomain(evt),
+    getSignature(evt),
     getSrcIP(evt),
     getDstIP(evt),
     getProto(evt),
