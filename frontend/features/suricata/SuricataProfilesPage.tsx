@@ -38,7 +38,8 @@ export function SuricataProfilesPage() {
     setSaving(true);
     try {
       const profile = await createProfile({ ...profileForm, description: profileForm.description || null });
-      toast.success("Perfil creado");
+      window.dispatchEvent(new Event("suricata-config-dirty"));
+      toast.success("Perfil creado; aplica cambios si será el perfil activo");
       setProfileForm({ name: "", description: "", mode: "IPS", sensitivity: "medium" });
       setSelectedProfileId(profile.id);
       await load();
@@ -53,7 +54,9 @@ export function SuricataProfilesPage() {
     setSaving(true);
     try {
       await activateProfile(profileId);
-      toast.success("Perfil activo actualizado");
+      setSelectedProfileId(profileId);
+      window.dispatchEvent(new Event("suricata-config-dirty"));
+      toast.success("Perfil activo actualizado; aplica cambios para recargar Suricata");
       await load();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo activar el perfil");
@@ -68,6 +71,7 @@ export function SuricataProfilesPage() {
     setSaving(true);
     try {
       await deleteProfile(profile.id);
+      window.dispatchEvent(new Event("suricata-config-dirty"));
       toast.success("Perfil eliminado");
       if (selectedProfileId === profile.id) setSelectedProfileId("");
       await load();
@@ -80,41 +84,41 @@ export function SuricataProfilesPage() {
 
   return (
     <SectionCard eyebrow="Política base" title="Perfiles" description="Cada perfil agrupa modo, sensibilidad, overrides y reglas locales. Solo el perfil activo se usa al aplicar configuración.">
-      <div className="grid gap-4 xl:grid-cols-[0.75fr_1.25fr]">
-        <form className="grid gap-3" onSubmit={handleCreateProfile}>
+      <div className="grid gap-6 xl:grid-cols-[0.75fr_1.25fr]">
+        <form className="grid gap-4" onSubmit={handleCreateProfile}>
           <FormPanel title="Crear perfil" description="Usa perfiles separados para laboratorio, monitoreo y bloqueo activo.">
-          <label>
-            <FieldLabel>Nombre</FieldLabel>
-            <input className={inputClassName} onChange={(event) => setProfileForm((current) => ({ ...current, name: event.target.value }))} placeholder="IPS moderado" required value={profileForm.name} />
-          </label>
-          <label>
-            <FieldLabel>Descripción</FieldLabel>
-            <input className={inputClassName} onChange={(event) => setProfileForm((current) => ({ ...current, description: event.target.value }))} placeholder="Política de laboratorio" value={profileForm.description} />
-          </label>
-          <div className="grid gap-3 sm:grid-cols-2">
             <label>
-              <FieldLabel>Modo</FieldLabel>
-              <select className={selectClassName} onChange={(event) => setProfileForm((current) => ({ ...current, mode: event.target.value as "IDS" | "IPS" }))} value={profileForm.mode}>
-                <option value="IDS">IDS, solo monitoreo</option>
-                <option value="IPS">IPS, bloqueo activo</option>
-              </select>
+              <FieldLabel>Nombre</FieldLabel>
+              <input className={inputClassName} onChange={(event) => setProfileForm((current) => ({ ...current, name: event.target.value }))} placeholder="IPS moderado" required value={profileForm.name} />
             </label>
             <label>
-              <FieldLabel>Sensibilidad</FieldLabel>
-              <select className={selectClassName} onChange={(event) => setProfileForm((current) => ({ ...current, sensitivity: event.target.value as "low" | "medium" | "high" }))} value={profileForm.sensitivity}>
-                <option value="low">Baja</option>
-                <option value="medium">Media</option>
-                <option value="high">Alta</option>
-              </select>
+              <FieldLabel>Descripción</FieldLabel>
+              <input className={inputClassName} onChange={(event) => setProfileForm((current) => ({ ...current, description: event.target.value }))} placeholder="Política de laboratorio" value={profileForm.description} />
             </label>
-          </div>
-          <ActionButton disabled={saving} type="submit">Crear perfil</ActionButton>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label>
+                <FieldLabel>Modo</FieldLabel>
+                <select className={selectClassName} onChange={(event) => setProfileForm((current) => ({ ...current, mode: event.target.value as "IDS" | "IPS" }))} value={profileForm.mode}>
+                  <option value="IDS">IDS, solo monitoreo</option>
+                  <option value="IPS">IPS, bloqueo activo</option>
+                </select>
+              </label>
+              <label>
+                <FieldLabel>Sensibilidad</FieldLabel>
+                <select className={selectClassName} onChange={(event) => setProfileForm((current) => ({ ...current, sensitivity: event.target.value as "low" | "medium" | "high" }))} value={profileForm.sensitivity}>
+                  <option value="low">Baja</option>
+                  <option value="medium">Media</option>
+                  <option value="high">Alta</option>
+                </select>
+              </label>
+            </div>
+            <ActionButton disabled={saving} type="submit">Crear perfil</ActionButton>
           </FormPanel>
         </form>
 
-        <div className="grid gap-3">
+        <div className="grid gap-4">
           {profiles.map((profile) => (
-            <article className={`rounded-xl border p-3 transition ${selectedProfileId === profile.id ? "border-soc-primary/55 bg-soc-blue/12" : "border-soc-outline/70 bg-soc-lowest/55 hover:border-soc-primary/35"}`} key={profile.id}>
+            <article className={`rounded-xl border p-4 transition ${selectedProfileId === profile.id ? "border-soc-primary/55 bg-soc-blue/12" : "border-soc-outline/70 bg-soc-lowest/55 hover:border-soc-primary/35"}`} key={profile.id}>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <button className="text-left" onClick={() => setSelectedProfileId(profile.id)} type="button">
                   <div className="flex flex-wrap items-center gap-2">
@@ -128,7 +132,7 @@ export function SuricataProfilesPage() {
                   <StatusPill tone="muted">{profile.sensitivity}</StatusPill>
                 </div>
               </div>
-              <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-soc-outline/50 pt-3">
+              <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-soc-outline/50 pt-4">
                 <ActionButton disabled={profile.is_active || saving} onClick={() => void handleActivateProfile(profile.id)} tone="ghost">Activar</ActionButton>
                 <ActionButton disabled={profile.is_active || saving} onClick={() => void handleDeleteProfile(profile)} tone="danger"><IconTrash size={15} /> Eliminar</ActionButton>
               </div>

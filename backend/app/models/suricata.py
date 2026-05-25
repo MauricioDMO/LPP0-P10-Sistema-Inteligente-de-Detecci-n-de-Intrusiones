@@ -102,3 +102,24 @@ class SuricataNotificationSettings(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     buffer_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     buffer_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=5, server_default="5")
     timezone: Mapped[str] = mapped_column(String(40), nullable=False, default="UTC", server_default="UTC")
+
+
+class SuricataListEntry(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "suricata_list_entries"
+    __table_args__ = (
+        UniqueConstraint("profile_id", "list_type", "entry_type", "value", "direction", name="uq_suricata_list_entry"),
+    )
+
+    profile_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("suricata_profiles.id", ondelete="CASCADE"), nullable=False)
+    list_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    entry_type: Mapped[str] = mapped_column(String(10), nullable=False)
+    value: Mapped[str] = mapped_column(String(255), nullable=False)
+    direction: Mapped[str] = mapped_column(String(20), nullable=False, default="destination", server_default="destination")
+    action: Mapped[str] = mapped_column(String(10), nullable=False)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    generated_rule_ids: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
+    created_by_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    updated_by_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    profile: Mapped[SuricataProfile] = relationship()

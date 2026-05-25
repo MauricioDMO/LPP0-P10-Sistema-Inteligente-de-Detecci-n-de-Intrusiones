@@ -1,6 +1,7 @@
 import { authenticatedFetch } from "@/lib/auth-api";
 import type {
   ApplyJob,
+  ApplyMode,
   CustomRule,
   CustomRuleCreatePayload,
   CustomRuleUpdatePayload,
@@ -93,8 +94,8 @@ export async function deleteCustomRule(ruleId: string): Promise<void> {
   if (!response.ok) throw new Error(await parseError(response));
 }
 
-export function applySuricataConfig(profileId?: string): Promise<ApplyJob> {
-  return jsonRequest<ApplyJob>("/api/suricata/apply", { method: "POST", body: JSON.stringify({ profile_id: profileId ?? null }) });
+export function applySuricataConfig(profileId?: string, mode: ApplyMode = "auto"): Promise<ApplyJob> {
+  return jsonRequest<ApplyJob>("/api/suricata/apply", { method: "POST", body: JSON.stringify({ profile_id: profileId ?? null, mode }) });
 }
 
 export function fetchNotificationSettings(): Promise<NotificationSettings> {

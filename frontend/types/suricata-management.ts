@@ -52,16 +52,32 @@ export type ApplyJob = {
   status: "pending" | "running" | "success" | "failed";
   started_at: string | null;
   finished_at: string | null;
-  generated_files: Record<string, string> | null;
+  generated_files: Record<string, unknown> | null;
   command_output: string | null;
   error_message: string | null;
   created_at: string;
+};
+
+export type ApplyMode = "auto" | "fast" | "full";
+
+export type SuricataApplyProgressEvent = {
+  type: "suricata_apply";
+  timestamp: string;
+  job_id?: string;
+  profile_id?: string;
+  status: "running" | "success" | "failed";
+  step: string;
+  message: string;
+  error_message?: string;
 };
 
 export type SuricataStatus = {
   container_running: boolean;
   active_profile: SuricataProfile | null;
   last_job: ApplyJob | null;
+  apply_running: boolean;
+  current_apply_event: SuricataApplyProgressEvent | null;
+  sources_changed_since_last_apply: boolean;
 };
 
 export type ProfileCreatePayload = {

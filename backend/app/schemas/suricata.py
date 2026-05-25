@@ -11,6 +11,7 @@ SuricataSensitivity = Literal["low", "medium", "high"]
 RuleAction = Literal["enable", "disable", "drop", "alert", "reject"]
 ValidationStatus = Literal["pending", "valid", "invalid"]
 JobStatus = Literal["pending", "running", "success", "failed"]
+ApplyMode = Literal["auto", "fast", "full"]
 
 
 class SuricataProfileCreate(BaseModel):
@@ -132,6 +133,7 @@ class CustomRuleResponse(BaseModel):
 
 class ApplyRequest(BaseModel):
     profile_id: UUID | None = None
+    mode: ApplyMode = "auto"
 
 
 class ApplyJobResponse(BaseModel):
@@ -152,6 +154,9 @@ class SuricataStatusResponse(BaseModel):
     container_running: bool
     active_profile: SuricataProfileResponse | None
     last_job: ApplyJobResponse | None
+    apply_running: bool = False
+    current_apply_event: dict | None = None
+    sources_changed_since_last_apply: bool = False
 
 
 class TelegramChatRecipient(BaseModel):

@@ -199,6 +199,30 @@ curl -b cookies.txt -X POST http://localhost:8000/api/suricata/apply \
   -d "{\"profile_id\":\"$PROFILE_ID\"}"
 ```
 
+## Listas Negras Y Blancas
+
+Las listas usan PostgreSQL como estado deseado y se materializan como reglas locales del perfil seleccionado. `POST /api/lists/apply` sincroniza esas reglas y delega la aplicacion final al mismo flujo de jobs de Suricata.
+
+| Metodo | Endpoint | Roles | CSRF | Uso |
+| --- | --- | --- | --- | --- |
+| `GET` | `/api/lists/block?profile_id={profile_id}` | `admin`, `analyst`, `viewer` | No | Lista entradas de blacklist del perfil. |
+| `POST` | `/api/lists/block` | `admin`, `analyst` | Si | Crea entrada `domain`, `ip` o `cidr` con accion `drop` o `reject`. |
+| `PATCH` | `/api/lists/block/{id}` | `admin`, `analyst` | Si | Edita entrada de blacklist. |
+| `DELETE` | `/api/lists/block/{id}` | `admin`, `analyst` | Si | Elimina entrada y reglas generadas asociadas. |
+| `GET` | `/api/lists/allow?profile_id={profile_id}` | `admin`, `analyst`, `viewer` | No | Lista entradas de allowlist del perfil. |
+| `POST` | `/api/lists/allow` | `admin`, `analyst` | Si | Crea entrada `domain`, `ip` o `cidr` con accion `pass`. |
+| `PATCH` | `/api/lists/allow/{id}` | `admin`, `analyst` | Si | Edita entrada de allowlist. |
+| `DELETE` | `/api/lists/allow/{id}` | `admin`, `analyst` | Si | Elimina entrada y reglas generadas asociadas. |
+| `GET` | `/api/lists/generated-rules?profile_id={profile_id}` | `admin`, `analyst`, `viewer` | No | Previsualiza reglas generadas para el perfil. |
+| `POST` | `/api/lists/apply` | `admin`, `analyst` | Si | Sincroniza reglas de listas y ejecuta apply Suricata. |
+
+Campos principales:
+
+- `entry_type`: `domain`, `ip` o `cidr`.
+- `direction`: `source`, `destination` o `both`; en dominios se normaliza a `destination`.
+- Blacklist usa `drop` o `reject`; allowlist usa `pass`.
+- La allowlist depende de la semantica de reglas `pass` de Suricata y no debe tratarse como bypass absoluto.
+
 ## WebSocket Realtime
 
 Endpoint:

@@ -73,7 +73,7 @@ Agrupa una politica de trabajo: nombre, descripcion, modo declarado, sensibilida
 
 Ruleset externo manejado por `suricata-update`. El seed inicial carga fuentes como ET Open, URLhaus, FeodoTracker, SSLBL y OISF Traffic ID.
 
-Activar o desactivar una fuente guarda el estado deseado. Durante **Aplicar configuracion**, el backend ejecuta `suricata-update enable-source` o `disable-source`.
+Activar o desactivar una fuente guarda el estado deseado. En el siguiente **Aplicar configuracion**, el backend detecta el cambio y usa actualizacion completa con `suricata-update enable-source` o `disable-source`.
 
 ### SID Y GID
 
@@ -129,6 +129,15 @@ Variables relacionadas: [Variables de entorno](../05-Referencia/Variables-Entorn
 
 ## Proceso Interno De Aplicacion
 
+El panel tiene dos rutas de aplicacion:
+
+| Operacion | Disparador | Comandos externos |
+| --- | --- | --- |
+| Apply rapido | Cambios en reglas custom, listas, overrides o perfil activo cuando no cambiaron las fuentes externas. `/api/lists/apply` usa la misma decision automatica. | Regenera archivos locales, ejecuta `suricata-update --offline` para reconstruir `suricata.rules` desde cache local, valida con `suricata -T` y recarga. |
+| Actualizacion completa | Cambio en fuentes externas, primer apply sin metadata previa, o boton **Actualizar rulesets** en la pagina de fuentes cuando hay cambios pendientes de fuentes. | Aplica `enable-source`/`disable-source`, ejecuta `suricata-update` completo contra fuentes externas, valida con `suricata -T` y recarga. |
+
+El boton global **Aplicar cambios** usa modo automatico: rapido si el set de fuentes habilitadas coincide con el ultimo apply exitoso; completo si las fuentes cambiaron o no hay apply exitoso previo.
+
 ```text
 Frontend /suricata
   -> POST /api/suricata/apply
@@ -136,11 +145,13 @@ Frontend /suricata
   -> Lee fuentes, overrides y reglas custom desde PostgreSQL
   -> Renderiza enable.conf, disable.conf, drop.conf, modify.conf y custom.rules
   -> Copia archivos al contenedor suricata
-  -> Ejecuta suricata-update
+  -> Ejecuta suricata-update --offline o suricata-update completo segun el modo
   -> Ejecuta suricata -T
   -> Recarga Suricata con USR2 si la validacion pasa
   -> Guarda job success o failed
 ```
+
+Antes de modificar archivos runtime, el backend respalda los archivos controlados y `/var/lib/suricata/rules/suricata.rules`. Si falla la validacion, restaura el respaldo y no recarga Suricata.
 
 Archivos generados:
 

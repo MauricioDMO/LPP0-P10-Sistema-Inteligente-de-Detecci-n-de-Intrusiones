@@ -17,10 +17,11 @@ from .enriched_writer import ensure_enriched_template, persist_enriched_event
 from . import notifier
 from .db import AsyncSessionLocal
 from .db.seed import bootstrap_suricata_management
-from .routes import analytics, auth, events, suricata
+from .routes import analytics, auth, events, lists, suricata
 from .security import decode_access_token
 from .services.auth_service import bootstrap_auth
 from .services.auth_service import get_user_by_id
+from .suricata_apply_events import register_apply_websocket, unregister_apply_websocket
 
 # Configurar logging
 logging.basicConfig(
@@ -186,6 +187,7 @@ app.add_middleware(
 app.include_router(analytics.router)
 app.include_router(auth.router)
 app.include_router(events.router)
+app.include_router(lists.router)
 app.include_router(suricata.router)
 
 
@@ -273,6 +275,27 @@ async def websocket_endpoint(
     except Exception as e:
         logger.error(f"Error en WebSocket: {e}")
         active_websockets.discard(websocket)
+
+
+@app.websocket("/ws/suricata/apply")
+async def suricata_apply_websocket(websocket: WebSocket):
+    """WebSocket para progreso de jobs de apply Suricata."""
+    if not await authenticate_websocket(websocket):
+        return
+
+    await register_apply_websocket(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            message = json.loads(data)
+            if message.get("type") == "ping":
+                await websocket.send_json({"type": "pong"})
+    except WebSocketDisconnect:
+        unregister_apply_websocket(websocket)
+        logger.info("Cliente de progreso Suricata desconectado")
+    except Exception as exc:
+        logger.error("Error en WebSocket de progreso Suricata: %s", exc)
+        unregister_apply_websocket(websocket)
 
 
 if __name__ == "__main__":

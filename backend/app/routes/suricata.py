@@ -31,8 +31,9 @@ from ..schemas.suricata import (
     SuricataSourceUpdate,
     SuricataStatusResponse,
 )
-from ..services.suricata_apply_service import apply_suricata_config, docker_container_running, get_active_profile, get_last_job
+from ..services.suricata_apply_service import apply_suricata_config, docker_container_running, enabled_source_names, get_active_profile, get_last_job, get_last_successful_job
 from ..services.suricata_config_renderer import validate_custom_rule_text
+from ..suricata_apply_events import get_last_apply_event
 
 router = APIRouter(prefix="/api/suricata", tags=["suricata"])
 
@@ -64,10 +65,20 @@ async def get_status(
     session: AsyncSession = Depends(get_db_session),
     _: User = Depends(require_roles("admin", "analyst", "viewer")),
 ):
+    last_job = await get_last_job(session)
+    last_successful_job = await get_last_successful_job(session)
+    current_apply_event = get_last_apply_event()
+    apply_running = (last_job is not None and last_job.status == "running") or (current_apply_event is not None and current_apply_event.get("status") == "running")
+    sources_result = await session.execute(select(SuricataSource).order_by(SuricataSource.source_name))
+    current_enabled_sources = enabled_source_names(list(sources_result.scalars()))
+    previous_enabled_sources = last_successful_job.generated_files.get("_enabled_sources") if last_successful_job is not None and isinstance(last_successful_job.generated_files, dict) else None
     return SuricataStatusResponse(
         container_running=await docker_container_running(),
         active_profile=await get_active_profile(session),
-        last_job=await get_last_job(session),
+        last_job=last_job,
+        apply_running=apply_running,
+        current_apply_event=current_apply_event if apply_running else None,
+        sources_changed_since_last_apply=previous_enabled_sources is not None and previous_enabled_sources != current_enabled_sources,
     )
 
 
@@ -320,7 +331,7 @@ async def apply_config(
     __: None = Depends(require_csrf_token),
 ):
     try:
-        return await apply_suricata_config(session, payload.profile_id)
+        return await apply_suricata_config(session, payload.profile_id, payload.mode)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 

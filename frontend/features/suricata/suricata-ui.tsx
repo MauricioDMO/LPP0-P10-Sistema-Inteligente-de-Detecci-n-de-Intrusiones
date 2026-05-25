@@ -37,7 +37,7 @@ const toneClasses = {
 export function SectionCard({ actions, children, description, eyebrow, title }: { actions?: React.ReactNode; children: React.ReactNode; description?: string; eyebrow?: string; title: string }) {
   return (
     <section className="overflow-hidden rounded-2xl border border-soc-outline/75 bg-soc-low/85 shadow-[0_22px_70px_rgba(0,0,0,0.24)] backdrop-blur">
-      <div className="flex flex-col gap-3 border-b border-soc-outline/55 bg-soc-lowest/35 px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-soc-outline/55 bg-soc-lowest/35 px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-6">
         <div>
           {eyebrow ? <div className="mb-1 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-soc-primary">{eyebrow}</div> : null}
           <h2 className="text-lg font-black tracking-[-0.02em] text-white">{title}</h2>
@@ -45,28 +45,28 @@ export function SectionCard({ actions, children, description, eyebrow, title }: 
         </div>
         {actions ? <div className="shrink-0">{actions}</div> : null}
       </div>
-      <div className="p-4">{children}</div>
+      <div className="p-5 sm:p-6">{children}</div>
     </section>
   );
 }
 
 export function FormPanel({ children, title, description }: { children: React.ReactNode; description?: string; title?: string }) {
   return (
-    <div className="rounded-xl border border-soc-outline/65 bg-soc-lowest/55 p-3 shadow-inner shadow-black/10">
+    <div className="rounded-xl border border-soc-outline/65 bg-soc-lowest/55 p-4 shadow-inner shadow-black/10 sm:p-5">
       {title ? (
         <div className="mb-3">
           <h3 className="text-sm font-black uppercase tracking-[0.12em] text-white">{title}</h3>
           {description ? <p className="mt-1 text-xs leading-5 text-soc-muted">{description}</p> : null}
         </div>
       ) : null}
-      <div className="grid gap-3">{children}</div>
+      <div className="grid gap-4">{children}</div>
     </div>
   );
 }
 
 export function InfoPanel({ children, title }: { children: React.ReactNode; title: string }) {
   return (
-    <aside className="rounded-xl border border-soc-primary/25 bg-soc-primary/8 p-3">
+    <aside className="rounded-xl border border-soc-primary/25 bg-soc-primary/8 p-4 sm:p-5">
       <h3 className="text-xs font-black uppercase tracking-[0.14em] text-soc-primary">{title}</h3>
       <div className="mt-2 text-sm leading-6 text-soc-muted">{children}</div>
     </aside>
@@ -103,7 +103,7 @@ export function StatusPill({ children, tone = "muted" }: { children: React.React
 
 export function MetricCard({ description, label, tone = "muted", value }: { description?: string; label: string; tone?: keyof typeof toneClasses; value: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-soc-outline/70 bg-soc-low/80 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+    <div className="rounded-2xl border border-soc-outline/70 bg-soc-low/80 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
       <div className="flex items-center justify-between gap-3">
         <div className="text-xs font-black uppercase tracking-[0.14em] text-soc-muted">{label}</div>
         <span className={`h-2.5 w-2.5 rounded-full border ${toneClasses[tone]}`} />
@@ -130,7 +130,7 @@ export function ProfileSelect({ onChange, profiles, value }: { onChange: (profil
 }
 
 export function EmptyState({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-xl border border-dashed border-soc-outline/60 bg-soc-lowest/35 px-4 py-8 text-center text-sm text-soc-muted">{children}</div>;
+  return <div className="rounded-xl border border-dashed border-soc-outline/60 bg-soc-lowest/35 px-5 py-10 text-center text-sm text-soc-muted">{children}</div>;
 }
 
 export function ResponsiveTable({ children }: { children: React.ReactNode }) {

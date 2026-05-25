@@ -58,7 +58,8 @@ export function SuricataOverridesPage() {
       await createRuleOverride(selectedProfileId, { gid: overrideForm.gid, sid: Number(overrideForm.sid), action: overrideForm.action, reason: overrideForm.reason || null, enabled: true, notify_enabled: false });
       setOverrideForm({ gid: 1, sid: "", action: "drop", reason: "" });
       await loadProfileDetails(selectedProfileId);
-      toast.success("Override agregado");
+      window.dispatchEvent(new Event("suricata-config-dirty"));
+      toast.success("Override guardado; aplica cambios para recargar Suricata");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo crear override");
     } finally {
@@ -70,6 +71,7 @@ export function SuricataOverridesPage() {
     try {
       await deleteRuleOverride(overrideId);
       await loadProfileDetails(selectedProfileId);
+      window.dispatchEvent(new Event("suricata-config-dirty"));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo eliminar override");
     }
@@ -79,6 +81,7 @@ export function SuricataOverridesPage() {
     try {
       const updated = await updateRuleOverride(override.id, { notify_enabled: !override.notify_enabled });
       setOverrides((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+      toast.success("Preferencia de Telegram guardada");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo actualizar la notificación");
     }
@@ -86,7 +89,7 @@ export function SuricataOverridesPage() {
 
   return (
     <SectionCard eyebrow="Reglas existentes" title="Overrides por SID" description="Usa esta sección cuando ya conoces el SID de una regla y quieres cambiar su comportamiento para un perfil concreto.">
-      <div className="mb-4 grid gap-3 lg:grid-cols-[22rem_1fr]">
+      <div className="mb-6 grid gap-4 lg:grid-cols-[22rem_1fr]">
         <FormPanel title="Perfil objetivo" description="Los overrides se guardan dentro del perfil seleccionado.">
           <ProfileSelect profiles={profiles} value={selectedProfileId} onChange={(profileId) => void handleSelectProfile(profileId)} />
         </FormPanel>
@@ -95,7 +98,7 @@ export function SuricataOverridesPage() {
         </InfoPanel>
       </div>
 
-      <form className="mb-4" onSubmit={handleCreateOverride}>
+      <form className="mb-6" onSubmit={handleCreateOverride}>
         <FormPanel title="Agregar override" description="Indica la regla por GID:SID y el comportamiento deseado.">
           <div className="grid gap-3 lg:grid-cols-[0.5fr_1fr_1.2fr_1.4fr_auto] lg:items-end">
             <label>
@@ -121,9 +124,9 @@ export function SuricataOverridesPage() {
         </FormPanel>
       </form>
 
-      <div className="grid gap-3">
+      <div className="grid gap-4">
         {overrides.map((override) => (
-          <article className="rounded-xl border border-soc-outline/70 bg-soc-lowest/55 p-3" key={override.id}>
+          <article className="rounded-xl border border-soc-outline/70 bg-soc-lowest/55 p-4" key={override.id}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <div className="font-mono text-lg font-black text-white">{override.gid}:{override.sid}</div>
@@ -134,7 +137,7 @@ export function SuricataOverridesPage() {
                 <StatusPill tone={override.notify_enabled ? "success" : "muted"}>{override.notify_enabled ? "Telegram" : "Sin Telegram"}</StatusPill>
               </div>
             </div>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-soc-outline/50 pt-3">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-soc-outline/50 pt-4">
               <label className="inline-flex items-center gap-2 text-sm font-bold text-white">
                 <input checked={override.notify_enabled} onChange={() => void handleToggleNotification(override)} type="checkbox" />
                 Notificar por Telegram

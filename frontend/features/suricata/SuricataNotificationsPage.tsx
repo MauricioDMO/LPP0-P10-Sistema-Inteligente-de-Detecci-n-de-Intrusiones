@@ -60,8 +60,8 @@ export function SuricataNotificationsPage() {
   }
 
   return (
-    <SectionCard eyebrow="Alertas" title="Notificaciones Telegram" description="Configura destinatarios, buffer y zona horaria. El token del bot se mantiene seguro en BACKEND_TELEGRAM_BOT_TOKEN.">
-      <form className="grid gap-4" onSubmit={handleSave}>
+    <SectionCard eyebrow="Alertas" title="Notificaciones Telegram" description="Configura destinatarios, buffer y zona horaria. Estos cambios los usa el backend al instante; no requieren aplicar ni recargar Suricata.">
+      <form className="grid gap-6" onSubmit={handleSave}>
         <FormPanel title="Comportamiento general" description="Define si Telegram está activo y si las alertas se envían una por una o agrupadas.">
           <div className="grid gap-3 lg:grid-cols-4">
             <label className="flex min-h-20 items-center justify-between gap-3 rounded-xl border border-soc-outline/60 bg-soc-low/60 p-3 text-sm font-bold text-white">
@@ -87,8 +87,8 @@ export function SuricataNotificationsPage() {
           </div>
         </FormPanel>
 
-        <div className="rounded-xl border border-soc-outline/70 bg-soc-lowest/60 p-3">
-          <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="rounded-xl border border-soc-outline/70 bg-soc-lowest/60 p-4 sm:p-5">
+          <div className="mb-5 flex items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-black uppercase tracking-[0.12em] text-white">Chats destino</h3>
               <p className="mt-1 text-xs text-soc-muted">Asigna un nombre para reconocer a quién pertenece cada chat ID.</p>
@@ -96,9 +96,9 @@ export function SuricataNotificationsPage() {
             <ActionButton onClick={() => setRecipients((current) => [...current, { ...DEFAULT_RECIPIENT }])}><IconPlus size={15} /> Agregar</ActionButton>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2">
             {recipients.map((recipient, index) => (
-              <div className="grid gap-2 rounded-xl border border-soc-outline/60 bg-soc-low/60 p-3" key={index}>
+              <div className="grid gap-3 rounded-xl border border-soc-outline/60 bg-soc-low/60 p-4" key={index}>
                 <div className="flex items-center justify-between gap-2">
                   <StatusPill tone="primary">Chat {index + 1}</StatusPill>
                   <button className="rounded-lg border border-soc-outline/70 bg-soc-low px-2 py-1 text-soc-muted transition hover:border-soc-danger/45 hover:text-red-200" onClick={() => removeRecipient(index)} type="button" title="Eliminar destinatario">
