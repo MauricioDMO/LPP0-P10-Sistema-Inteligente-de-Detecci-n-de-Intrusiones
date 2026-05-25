@@ -18,9 +18,11 @@ export function BlockedPanel({ hours }: BlockedPanelProps) {
         <AnalyticsState loading={loading} error={error} empty={!hasData} />
         {!loading && !error && data ? (
           <div className="space-y-4">
-            <div className="rounded-lg border border-soc-warning/40 bg-soc-warning/10 p-5">
-              <div className="font-mono text-5xl font-black leading-none tracking-[-0.06em] text-amber-200">{data.total_blocked}</div>
-              <div className="mt-2 text-xs font-bold uppercase tracking-[0.14em] text-soc-muted">Bloqueos confirmados</div>
+            <div className="grid grid-cols-2 gap-2">
+              <Metric label="Bloqueos" value={data.total_blocked} highlight />
+              <Metric label="IPs destino" value={data.unique_destination_ips ?? data.top_destination_ips.length} />
+              <Metric label="Reglas activas" value={data.active_blocking_rules ?? data.top_signatures.length} />
+              <Metric label="Último bloqueo" value={formatLastBlocked(data.last_blocked_at)} small />
             </div>
             <RankList title="Tipos de evento" items={data.by_type.map((item) => ({ label: item.type, count: item.count }))} />
           </div>
@@ -33,11 +35,28 @@ export function BlockedPanel({ hours }: BlockedPanelProps) {
             <RankList title="Reglas" items={data.top_signatures.map((item) => ({ label: item.signature, count: item.count }))} highlightBlocked />
             <RankList title="Origen" items={data.top_source_ips.map((item) => ({ label: item.ip, count: item.count }))} mono />
             <RankList title="Destino" items={data.top_destination_ips.map((item) => ({ label: item.ip, count: item.count }))} mono />
+            {data.top_rule ? <div className="lg:col-span-3 rounded-lg border border-soc-warning/25 bg-soc-warning/8 p-3"><div className="text-[10px] font-black uppercase tracking-[0.14em] text-soc-muted">Top regla</div><div className="mt-2 text-sm font-bold text-amber-100">{data.top_rule}</div></div> : null}
           </div>
         ) : null}
       </AnalyticsShell>
     </div>
   );
+}
+
+function Metric({ label, value, highlight, small }: { label: string; value: number | string; highlight?: boolean; small?: boolean }) {
+  return (
+    <div className={`rounded-lg border p-3 ${highlight ? "border-soc-warning/40 bg-soc-warning/10" : "border-soc-outline bg-soc-lowest/65"}`}>
+      <div className={`font-mono font-black leading-none tracking-[-0.04em] ${small ? "text-base" : "text-3xl"} ${highlight ? "text-amber-200" : "text-white"}`}>{value}</div>
+      <div className="mt-2 text-[10px] font-bold uppercase tracking-[0.12em] text-soc-muted">{label}</div>
+    </div>
+  );
+}
+
+function formatLastBlocked(value?: string | null): string {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
 }
 
 function RankList({ title, items, mono, highlightBlocked }: { title: string; items: Array<{ label: string; count: number }>; mono?: boolean; highlightBlocked?: boolean }) {
@@ -47,7 +66,7 @@ function RankList({ title, items, mono, highlightBlocked }: { title: string; ite
       <div className="space-y-2">
         {items.length === 0 ? <div className="text-xs text-soc-muted">Sin datos</div> : null}
         {items.map((item) => {
-          const blocked = highlightBlocked && item.label.toLowerCase().includes("bloqueo");
+          const blocked = highlightBlocked && isBlockedLabel(item.label);
           return (
             <div className="flex items-center justify-between gap-3 rounded border border-white/5 bg-soc-low/70 px-2 py-2" key={item.label}>
               <span className={`min-w-0 truncate text-xs ${mono ? "font-mono" : ""} ${blocked ? "text-amber-200" : "text-white"}`} title={item.label}>{item.label}</span>
@@ -58,4 +77,9 @@ function RankList({ title, items, mono, highlightBlocked }: { title: string; ite
       </div>
     </div>
   );
+}
+
+function isBlockedLabel(label: string): boolean {
+  const normalized = label.toLowerCase();
+  return normalized.includes("bloqueo") || normalized.includes("blocked") || normalized.includes("suricata-list block");
 }

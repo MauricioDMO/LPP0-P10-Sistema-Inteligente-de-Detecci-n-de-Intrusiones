@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { PageHeading } from "@/features/analytics/components/PageHeading";
 import { TimeRangeSelector } from "@/features/analytics/components/TimeRangeSelector";
+import { InvestigationEventsPanel } from "@/features/analytics/components/InvestigationEventsPanel";
 import type { TimeRangeHours } from "@/types/analytics";
 import { BlockedPanel } from "./components/BlockedPanel";
 
@@ -15,6 +16,7 @@ export function BlockedDashboard() {
         <PageHeading eyebrow="IPS" title="Bloqueos" description="Vista dedicada para probar que las reglas de bloqueo están actuando y qué IPs participan." />
         <TimeRangeSelector value={timeRange} onChange={setTimeRange} />
         <BlockedPanel hours={timeRange} />
+        <InvestigationEventsPanel hours={timeRange} mode="blocked" />
       </div>
     </main>
   );
