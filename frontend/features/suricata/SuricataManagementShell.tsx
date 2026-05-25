@@ -161,9 +161,9 @@ export function SuricataManagementShell({ children }: { children: React.ReactNod
   return (
     <main className="min-h-screen px-3 py-5 text-foreground sm:px-4 sm:py-6 lg:px-6 lg:py-8">
       <div className="mx-auto flex max-w-450 flex-col gap-6 lg:gap-8">
-        <section className="rounded-2xl border border-soc-outline/80 bg-soc-low/90 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.24)] backdrop-blur sm:p-6" aria-label="Estado actual de Suricata">
-          <div className="grid gap-4 lg:grid-cols-[minmax(15rem,1.4fr)_minmax(14rem,1fr)_minmax(16rem,1.2fr)_auto] lg:items-stretch">
-            <div className="rounded-xl border border-soc-outline/60 bg-soc-lowest/45 p-4">
+        <section className="rounded -mb-5 border border-soc-outline/80 bg-soc-low/90 p-2 shadow-[0_18px_60px_rgba(0,0,0,0.24)] backdrop-blur" aria-label="Estado actual de Suricata">
+          <div className="grid gap-2 lg:grid-cols-[minmax(15rem,1.4fr)_minmax(14rem,1fr)_minmax(16rem,1.2fr)_auto] lg:items-stretch">
+            <div className="rounded border border-soc-outline/60 bg-soc-lowest/45 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="font-mono text-[10px] font-black uppercase tracking-[0.18em] text-soc-muted">Estado actual</div>
@@ -175,18 +175,18 @@ export function SuricataManagementShell({ children }: { children: React.ReactNod
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs text-soc-muted sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              <div className="rounded-xl border border-soc-outline/60 bg-soc-lowest/55 p-4">
+              <div className="rounded border border-soc-outline/60 bg-soc-lowest/55 p-4">
                 <span className="block uppercase tracking-[0.12em]">Modo</span>
                 <strong className="mt-1 block text-white">{status?.active_profile?.mode ?? "-"}</strong>
               </div>
-              <div className="rounded-xl border border-soc-outline/60 bg-soc-lowest/55 p-4">
+              <div className="rounded border border-soc-outline/60 bg-soc-lowest/55 p-4">
                 <span className="block uppercase tracking-[0.12em]">Último apply</span>
                 <strong className="mt-1 block text-white">{status?.last_job?.status ?? "sin jobs"}</strong>
                 <span className="mt-1 block font-mono text-[10px]">{formatDate(status?.last_job?.created_at ?? null)}</span>
               </div>
             </div>
 
-            <div className="rounded-xl border border-soc-outline/60 bg-soc-lowest/45 p-4">
+            <div className="rounded border border-soc-outline/60 bg-soc-lowest/45 p-4">
               <div className="flex flex-wrap gap-2">
                 <StatusPill tone={applyWsStatus === "connected" ? "success" : applyWsStatus === "error" ? "danger" : "warning"}>ws {applyWsStatus}</StatusPill>
                 <StatusPill tone={hasPendingChanges ? "warning" : "success"}>{hasPendingChanges ? "pendiente" : "sin cambios"}</StatusPill>
@@ -202,7 +202,7 @@ export function SuricataManagementShell({ children }: { children: React.ReactNod
           </div>
 
           {applyIsRunning ? (
-            <div className="mt-3 overflow-hidden rounded-xl border border-soc-primary/25 bg-soc-blue/10">
+            <div className="mt-3 overflow-hidden rounded border border-soc-primary/25 bg-soc-blue/10">
               <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-center gap-3">
                   <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-soc-primary shadow-[0_0_16px_rgba(77,142,255,0.75)]" aria-hidden="true" />
@@ -239,8 +239,8 @@ export function SuricataManagementShell({ children }: { children: React.ReactNod
             const Icon = item.icon;
             const active = pathname === item.href;
             return (
-              <Link className={`group flex items-center gap-3 rounded-2xl border p-4 transition hover:-translate-y-0.5 ${active ? "border-soc-primary/65 bg-soc-blue/20 text-white shadow-[0_0_34px_rgba(77,142,255,0.18)]" : "border-soc-outline/70 bg-soc-low/80 text-soc-muted hover:border-soc-primary/35 hover:bg-soc-blue/10 hover:text-white"}`} href={item.href} key={item.href}>
-                <span className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${active ? "border-soc-primary/40 bg-soc-primary/10 text-soc-primary" : "border-soc-outline/70 bg-soc-lowest text-soc-muted group-hover:text-soc-primary"}`}>
+              <Link className={`group flex items-center gap-2 rounded border p-2 transition hover:-translate-y-0.5 ${active ? "border-soc-primary/65 bg-soc-blue/20 text-white shadow-[0_0_34px_rgba(77,142,255,0.18)]" : "border-soc-outline/70 bg-soc-low/80 text-soc-muted hover:border-soc-primary/35 hover:bg-soc-blue/10 hover:text-white"}`} href={item.href} key={item.href}>
+                <span className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded border ${active ? "border-soc-primary/40 bg-soc-primary/10 text-soc-primary" : "border-soc-outline/70 bg-soc-lowest text-soc-muted group-hover:text-soc-primary"}`}>
                   <Icon size={20} stroke={1.8} />
                 </span>
                 <span className="min-w-0">
