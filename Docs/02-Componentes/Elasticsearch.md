@@ -36,23 +36,7 @@ Volumenes:
 
 ## Validacion rapida
 
-Estado HTTP:
-
-```bash
-curl http://localhost:9200
-```
-
-Salud del cluster:
-
-```bash
-curl http://localhost:9200/_cluster/health
-```
-
-Indices:
-
-```bash
-curl http://localhost:9200/_cat/indices?v
-```
+Usar [salud del stack](../05-Referencia/Comandos.md#salud-del-stack) y [Inicio y verificacion](../03-Operacion/Inicio-y-Verificacion.md#2-elasticsearch).
 
 ## Retencion y templates
 
@@ -79,7 +63,4 @@ curl http://localhost:9200/suricata-enriched-*/_mapping
 
 ## Riesgos
 
-- Nodo unico sin alta disponibilidad.
-- Seguridad deshabilitada.
-- Requiere `vm.max_map_count=262144` en algunos hosts Linux.
-- Heap de 512 MB es para laboratorio o carga baja.
+Riesgos y hardening: [Seguridad](../05-Referencia/Seguridad.md).

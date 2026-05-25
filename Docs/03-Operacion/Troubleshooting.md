@@ -1,8 +1,10 @@
 # Troubleshooting
 
-Guia corta para diagnosticar fallas comunes del stack. Revisa el flujo en orden: Docker, Suricata, Filebeat, Logstash, Elasticsearch, Redis, Backend y Frontend.
+Guia corta para diagnosticar fallas comunes. Primero ejecuta el diagnostico rapido y luego revisa el componente afectado.
 
-## Diagnostico rapido
+Comandos reutilizables: [Comandos](../05-Referencia/Comandos.md).
+
+## Diagnostico Rapido
 
 ```bash
 docker compose ps
@@ -19,127 +21,85 @@ curl http://localhost:3000
 curl http://localhost:9200/_cat/indices?v
 ```
 
-Para produccion basica, agrega `-f docker-compose.prod.yml` a los comandos `docker compose` y usa `http://127.0.0.1:9200`.
+En produccion basica agrega `-f docker-compose.prod.yml` a `docker compose` y usa `127.0.0.1`.
 
-## 1. Docker no responde
+## Docker No Responde
 
-Sintoma:
+Sintoma: `failed to connect to the docker API`.
 
-```text
-failed to connect to the docker API
-```
-
-Causa probable:
+Causas probables:
 
 - Docker Engine no esta iniciado.
 - El usuario no tiene permisos para usar Docker.
 
-Solucion:
+Validar:
 
 ```bash
 docker info
 ```
 
-Si falla, inicia Docker o revisa permisos del usuario.
+## Suricata No Arranca
 
-## 2. Suricata no arranca
+Sintomas: contenedor reiniciando, sin eventos, errores de interfaz o NFQUEUE.
 
-Sintomas:
-
-- El contenedor se reinicia.
-- No se generan eventos.
-- Logs mencionan interfaz invalida o error de `NFQUEUE`.
-
-Validaciones:
+Validar:
 
 ```bash
 docker compose logs --tail=100 suricata
 ```
 
-Si usas modo IDS, confirma interfaces reales:
+Si usas IDS, confirma `SURICATA_INTERFACE` en [Variables de entorno](../05-Referencia/Variables-Entorno.md). Si usas IPS, confirma permisos para `iptables`/`ip6tables`.
 
-```bash
-ip -o link show | awk -F': ' '{print $2}'
-```
-
-Revisa `.env`:
-
-```env
-SURICATA_MODE=ids
-SURICATA_INTERFACE=wlp0s20f3
-```
-
-Si usas modo IPS, confirma que el host permite modificar `iptables` y `ip6tables` desde el contenedor privilegiado.
-
-Recrear Suricata:
+Recrear:
 
 ```bash
 docker compose up -d --force-recreate suricata
 ```
 
-## 3. Elasticsearch no inicia
+## Elasticsearch No Inicia
 
-Sintomas:
-
-- Elasticsearch se reinicia.
-- Logstash no logra conectar.
-- Backend no responde.
-
-Causa comun en Linux:
-
-- `vm.max_map_count` bajo.
-
-Solucion:
+Causa comun: `vm.max_map_count` bajo.
 
 ```bash
 sudo sysctl -w vm.max_map_count=262144
 docker compose restart elasticsearch
-```
-
-Validar salud:
-
-```bash
 curl http://localhost:9200/_cluster/health
 ```
 
-## 4. Logstash no procesa eventos
+## No Hay Eventos En Elasticsearch
 
-Sintomas:
+Validar:
 
-- No aparecen indices `suricata-*`.
-- Redis no recibe eventos.
-- Filebeat muestra errores de conexion.
+```bash
+curl http://localhost:9200/_cat/indices?v
+docker compose logs --tail=100 suricata
+docker compose logs --tail=100 filebeat
+docker compose logs --tail=100 logstash
+```
 
-Validaciones:
+Causas comunes:
+
+- No se genero trafico reciente.
+- Suricata no escribe `eve.json`.
+- Filebeat no logra publicar a Logstash.
+- Logstash no logra publicar a Elasticsearch.
+
+## Logstash No Procesa
+
+Validar:
 
 ```bash
 docker logs logstash | grep "Pipelines running"
 docker logs logstash | grep -i "error\|exception"
-```
-
-Revisar dependencias:
-
-```bash
 curl http://localhost:9200/_cluster/health
 docker exec redis redis-cli PING
 ```
 
-Reiniciar:
-
-```bash
-docker compose restart logstash
-```
-
 Si persiste, revisar `logstash/logstash.conf`.
 
-## 5. Filebeat no envia eventos
+## Filebeat No Envia
 
-Sintomas:
-
-- Suricata corre, pero no hay datos en Elasticsearch.
-- Logstash no recibe eventos.
-
-Validaciones:
+Validar:
 
 ```bash
 docker compose logs --tail=100 filebeat
@@ -152,19 +112,9 @@ Causas comunes:
 - Logstash no esta corriendo.
 - El volumen `suricata-logs` no esta disponible.
 
-Acciones:
+## No Llegan Eventos A Redis
 
-```bash
-docker compose restart filebeat
-```
-
-## 6. No llegan eventos a Redis
-
-Sintomas:
-
-- `redis-cli PING` responde, pero `SUBSCRIBE suricata` no muestra mensajes.
-
-Validaciones:
+Validar:
 
 ```bash
 docker exec redis redis-cli PING
@@ -172,100 +122,25 @@ docker exec redis redis-cli PUBSUB NUMSUB suricata
 docker logs logstash | grep -i redis
 ```
 
-Prueba manual:
+Pub/Sub solo entrega mensajes a suscriptores activos. Para prueba manual, ver [Redis realtime](../05-Referencia/Comandos.md#redis-realtime).
 
-```bash
-docker exec redis redis-cli SUBSCRIBE suricata
-```
+## Login O Endpoints Protegidos Fallan
 
-En otra terminal:
+Sintomas: `401`, redireccion a `/login`, login no acepta credenciales esperadas.
 
-```bash
-ping -c 4 8.8.8.8
-curl http://neverssl.com
-```
-
-Notas:
-
-- Pub/Sub solo entrega mensajes a suscriptores activos.
-- Si no hay suscriptor al momento de publicar, Redis no guarda el evento.
-
-## 7. No aparecen eventos en Elasticsearch
-
-Validaciones:
-
-```bash
-curl http://localhost:9200/_cat/indices?v
-docker compose logs --tail=100 suricata
-docker compose logs --tail=100 filebeat
-docker compose logs --tail=100 logstash
-```
-
-Causas comunes:
-
-- No se ha generado trafico reciente.
-- No existen indices `suricata-*`.
-- Logstash no esta publicando a Elasticsearch.
-
-## 8. Login o endpoints protegidos fallan
-
-Sintomas:
-
-- `/api/events/latest` devuelve `401`.
-- El frontend redirige a `/login`.
-- Login no acepta `admin/admin123`.
-
-Validaciones:
-
-```bash
-docker compose logs --tail=100 backend
-curl http://localhost:8000/api/events/health
-curl -c cookies.txt -b cookies.txt -X POST http://localhost:8000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
-curl -b cookies.txt http://localhost:8000/api/auth/me
-```
+Validar con [Auth por consola](../05-Referencia/Comandos.md#auth-por-consola).
 
 Causas comunes:
 
 - El admin inicial solo se crea si no hay usuarios en PostgreSQL.
-- Cambiaste `BACKEND_INITIAL_ADMIN_PASSWORD` despues del primer arranque; no modifica usuarios existentes.
+- Cambiar `BACKEND_INITIAL_ADMIN_PASSWORD` despues del primer arranque no modifica usuarios existentes.
 - La sesion fue revocada por logout, cambio de password o desactivacion.
-- Para mutaciones falta el header `X-CSRF-Token`.
-- Demasiados intentos fallidos de login activaron temporalmente el limite `429`.
+- Falta `X-CSRF-Token` en mutaciones.
+- Demasiados intentos fallidos activaron temporalmente `429`.
 
-Para probar una mutacion con CSRF:
+## Frontend No Carga O No Recibe Eventos
 
-```bash
-CSRF=$(awk '/suricata_csrf/ {print $7}' cookies.txt)
-curl -b cookies.txt -X POST http://localhost:8000/api/auth/logout \
-  -H "X-CSRF-Token: $CSRF"
-```
-
-## 9. Puertos expuestos sin autenticacion
-
-Riesgo:
-
-- Elasticsearch y Redis no tienen autenticacion en la configuracion actual.
-- Backend y Frontend tienen login, pero deben usar secretos fuertes.
-
-Mitigacion minima:
-
-- En desarrollo, no exponer el host a redes no confiables.
-- En produccion basica, usar `docker-compose.prod.yml`.
-- Restringir con firewall.
-- Habilitar seguridad de Elastic antes de manejar datos reales.
-- Agregar autenticacion a Redis si queda accesible fuera del host.
-
-## 10. Frontend no carga o no recibe eventos
-
-Sintomas:
-
-- `http://localhost:3000` no abre.
-- El dashboard abre, pero queda desconectado.
-- No aparecen eventos aunque Redis y backend reciben datos.
-
-Validaciones:
+Validar:
 
 ```bash
 docker compose logs --tail=100 frontend
@@ -275,23 +150,19 @@ curl http://localhost:8000/api/events/health
 
 Causas comunes:
 
-- El servicio `frontend` no esta levantado.
-- `NEXT_PUBLIC_API_URL` o `NEXT_PUBLIC_WS_URL` apuntan a una URL incorrecta.
-- El backend no esta disponible en `8000`.
-- No hay sesion valida; entra por `/login`.
-- El origen del navegador no esta incluido en `BACKEND_CORS_ALLOWED_ORIGINS`; el WebSocket se cierra por politica `1008`.
-- El navegador no puede abrir el WebSocket configurado.
+- `frontend` no esta levantado.
+- `NEXT_PUBLIC_API_URL` o `NEXT_PUBLIC_WS_URL` apuntan mal.
+- Backend no disponible en `8000`.
+- No hay sesion valida.
+- `BACKEND_CORS_ALLOWED_ORIGINS` no permite el origen del navegador.
 
-Acciones:
+## Puertos Expuestos Sin Autenticacion
 
-```bash
-docker compose up -d --build frontend
-docker compose restart frontend
-```
+Riesgos y mitigacion estan centralizados en [Seguridad](../05-Referencia/Seguridad.md).
 
-## 11. Limpieza completa
+## Limpieza Completa
 
-Si necesitas reiniciar desde cero y perder datos locales:
+Destructivo:
 
 ```bash
 docker compose down -v

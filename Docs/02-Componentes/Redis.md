@@ -33,34 +33,8 @@ Esto es aceptable en este proyecto porque los mismos eventos tambien se almacena
 
 ## Validacion rapida
 
-Comprobar servicio:
-
-```bash
-docker exec redis redis-cli PING
-```
-
-Suscribirse al canal:
-
-```bash
-docker exec redis redis-cli SUBSCRIBE suricata
-```
-
-En otra terminal, generar trafico:
-
-```bash
-ping -c 4 8.8.8.8
-curl http://neverssl.com
-```
-
-Ver numero de suscriptores:
-
-```bash
-docker exec redis redis-cli PUBSUB NUMSUB suricata
-```
+Usar [Redis realtime](../05-Referencia/Comandos.md#redis-realtime) y [Inicio y verificacion](../03-Operacion/Inicio-y-Verificacion.md#3-redis).
 
 ## Riesgos
 
-- Pub/Sub no persiste eventos.
-- Redis no tiene autenticacion en la configuracion actual.
-- Si Redis reinicia, los suscriptores pierden conexion.
-- Para entrega garantizada se requiere otro patron, por ejemplo Redis Streams, List o una cola dedicada.
+Riesgos y mitigacion: [Seguridad](../05-Referencia/Seguridad.md).

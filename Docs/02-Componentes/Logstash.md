@@ -47,23 +47,7 @@ Logstash -> Redis:6379 -> canal suricata
 
 ## Validacion rapida
 
-Estado del servicio:
-
-```bash
-docker compose ps logstash
-```
-
-Pipeline activa:
-
-```bash
-docker logs logstash | grep "Pipelines running"
-```
-
-Errores:
-
-```bash
-docker logs logstash | grep -i "error\|exception"
-```
+Usar [logs](../05-Referencia/Comandos.md#logs) y [Inicio y verificacion](../03-Operacion/Inicio-y-Verificacion.md#4-logstash-y-filebeat).
 
 ## Riesgos
 

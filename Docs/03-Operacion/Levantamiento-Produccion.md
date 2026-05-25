@@ -1,19 +1,19 @@
-# Levantamiento en Produccion Basica
+# Levantamiento En Produccion Basica
 
 Guia para levantar el stack con `docker-compose.prod.yml`. Esta configuracion reduce exposicion de puertos, pero no reemplaza un hardening completo.
 
-## 1. Alcance
+## Alcance
 
 Produccion basica significa:
 
-- Elasticsearch, Redis, Backend y Frontend publicados solo en `127.0.0.1`.
+- Elasticsearch, Redis, Backend, Frontend y PostgreSQL publicados solo en `127.0.0.1`.
 - Politicas de reinicio `always`.
 - Misma arquitectura funcional que desarrollo.
-- Seguridad de Elastic y Redis aun deshabilitada.
+- Seguridad propia de Elastic y Redis aun deshabilitada.
 
-No incluye TLS, alta disponibilidad ni backups automatizados. Si incluye autenticacion del dashboard, pero Elastic y Redis siguen sin autenticacion propia.
+No incluye TLS, alta disponibilidad ni backups automatizados. Revisa [Seguridad](../05-Referencia/Seguridad.md) antes de usar datos reales.
 
-## 2. Prerequisitos
+## Prerequisitos
 
 - Host Linux actualizado.
 - Docker Engine activo.
@@ -34,86 +34,51 @@ echo 'vm.max_map_count=262144' | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
 ```
 
-## 3. Preparar variables
-
-Desde la raiz del proyecto:
+## Preparar `.env`
 
 ```bash
 cp .env.example .env
 ```
 
-Revisar `.env`:
+Cambia antes del primer arranque:
 
-```env
-STACK_VERSION=8.19.14
-SURICATA_MODE=ips
-SURICATA_INTERFACE=wlp0s20f3
-POSTGRES_PASSWORD=<password-fuerte>
-BACKEND_DATABASE_URL=postgresql+asyncpg://suricata:<password-fuerte>@postgres:5432/suricata
-BACKEND_JWT_SECRET=<secreto-largo-aleatorio>
-BACKEND_INITIAL_ADMIN_USERNAME=admin
-BACKEND_INITIAL_ADMIN_PASSWORD=<password-admin-fuerte>
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
-```
+- `POSTGRES_PASSWORD`
+- `BACKEND_DATABASE_URL`
+- `BACKEND_JWT_SECRET`
+- `BACKEND_INITIAL_ADMIN_PASSWORD`
 
-Notas:
+Detalle completo: [Variables de entorno](../05-Referencia/Variables-Entorno.md).
 
-- `SURICATA_MODE=ips` es el modo principal documentado.
-- Si usas `SURICATA_MODE=ids`, configura `SURICATA_INTERFACE` con una interfaz real del host.
-- Puedes usar varias interfaces en IDS separadas por coma.
-- Cambia `POSTGRES_PASSWORD`, `BACKEND_DATABASE_URL`, `BACKEND_JWT_SECRET` y `BACKEND_INITIAL_ADMIN_PASSWORD` antes del primer arranque.
-- El admin inicial solo se crea si PostgreSQL no tiene usuarios.
-
-## 4. Validar compose
+## Levantar
 
 ```bash
 docker compose -f docker-compose.prod.yml config
-```
-
-## 5. Levantar
-
-```bash
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-## 6. Verificar arranque
+## Verificar
 
 ```bash
 docker compose -f docker-compose.prod.yml ps
-curl http://127.0.0.1:9200
 curl http://127.0.0.1:8000/api/events/health
 curl http://127.0.0.1:3000
 docker exec redis redis-cli PING
 ```
 
-Validar login:
+Checklist completo: [Inicio y verificacion](Inicio-y-Verificacion.md).
 
-```bash
-curl -c cookies.txt -b cookies.txt -X POST http://127.0.0.1:8000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"<password-admin-fuerte>"}'
-curl -b cookies.txt http://127.0.0.1:8000/api/auth/me
-```
-
-## 7. Apagar
+## Apagar
 
 ```bash
 docker compose -f docker-compose.prod.yml down
 ```
 
-Limpieza destructiva de volumenes:
+Limpieza destructiva:
 
 ```bash
 docker compose -f docker-compose.prod.yml down -v
 ```
 
-## 8. Hardening minimo recomendado
+## Hardening
 
-- Mantener `9200`, `8000`, `3000` y `6379` restringidos a localhost o red administrativa.
-- Cambiar todos los secretos por defecto antes del primer arranque.
-- Usar firewall del host.
-- Habilitar seguridad de Elastic antes de exponer datos reales.
-- Agregar autenticacion a Redis si queda accesible fuera del host.
-- Definir backups para `esdata`.
-- Monitorear uso de CPU, RAM, disco y crecimiento de indices.
+El hardening minimo esta centralizado en [Seguridad](../05-Referencia/Seguridad.md).

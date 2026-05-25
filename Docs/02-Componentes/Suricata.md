@@ -74,18 +74,9 @@ Para activar o desactivar una regla local, usar el checkbox de **Reglas personal
 
 ## Gestion desde UI
 
-La gestion operativa se divide en rutas bajo `/suricata`:
+La gestion operativa se hace desde `/suricata`. Los cambios guardados en PostgreSQL no modifican Suricata hasta presionar **Aplicar configuracion**.
 
-| Ruta | Funcion |
-| ---- | ------- |
-| `/suricata` | Resumen y estado del contenedor/perfil/job. |
-| `/suricata/sources` | Activar o desactivar fuentes externas de `suricata-update`. |
-| `/suricata/profiles` | Crear, activar o eliminar perfiles. |
-| `/suricata/overrides` | Crear overrides por `GID:SID`. |
-| `/suricata/custom-rules` | Crear, activar, desactivar o eliminar reglas locales. |
-| `/suricata/notifications` | Configurar Telegram y destinatarios. |
-
-Los cambios guardados en PostgreSQL no modifican Suricata hasta presionar **Aplicar configuracion**. El backend entonces renderiza `enable.conf`, `disable.conf`, `drop.conf`, `modify.conf` y `local-rules/custom.rules`, ejecuta `suricata-update`, valida con `suricata -T` y recarga el proceso con `USR2` si todo pasa.
+Manual completo: [Manual del panel Suricata](../03-Operacion/Manual-Panel-Suricata.md).
 
 ## Notificaciones
 
@@ -95,29 +86,8 @@ La configuracion global de Telegram vive en `suricata_notification_settings` e i
 
 ## Validacion rapida
 
-Ver logs:
-
-```bash
-docker compose logs --tail=100 suricata
-```
-
-Generar trafico:
-
-```bash
-ping -c 4 8.8.8.8
-curl http://neverssl.com
-curl http://example.com
-```
-
-Confirmar que el flujo llega a Elasticsearch:
-
-```bash
-curl http://localhost:9200/_cat/indices?v
-```
+Usar [IPS y reglas](../05-Referencia/Comandos.md#ips-y-reglas) y el checklist [Inicio y verificacion](../03-Operacion/Inicio-y-Verificacion.md).
 
 ## Riesgos
 
-- Requiere privilegios elevados.
-- En modo IPS modifica reglas `iptables`/`ip6tables` en `OUTPUT` y `FORWARD` mientras el contenedor esta activo.
-- En modo IDS depende de que `SURICATA_INTERFACE` exista en el host.
-- No tiene healthcheck propio en Compose.
+Riesgos y recomendaciones IPS: [Seguridad](../05-Referencia/Seguridad.md#reglas-ips).

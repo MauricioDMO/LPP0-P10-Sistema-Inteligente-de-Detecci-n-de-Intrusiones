@@ -26,27 +26,7 @@ El backend espera a que PostgreSQL este saludable y ejecuta `alembic upgrade hea
 
 ## Variables De Entorno
 
-Variables PostgreSQL del contenedor:
-
-```env
-POSTGRES_DB=suricata
-POSTGRES_USER=suricata
-POSTGRES_PASSWORD=suricata
-```
-
-Variables backend:
-
-```env
-BACKEND_DATABASE_URL=postgresql+asyncpg://suricata:suricata@postgres:5432/suricata
-BACKEND_JWT_SECRET=change-me
-BACKEND_JWT_ALGORITHM=HS256
-BACKEND_JWT_EXPIRES_MINUTES=480
-BACKEND_INITIAL_ADMIN_USERNAME=admin
-BACKEND_INITIAL_ADMIN_PASSWORD=admin123
-BACKEND_INITIAL_ADMIN_EMAIL=admin@example.com
-```
-
-Para produccion, cambiar `POSTGRES_PASSWORD`, `BACKEND_DATABASE_URL`, `BACKEND_JWT_SECRET` y las credenciales del admin inicial antes del primer arranque.
+Variables completas y recomendaciones de produccion: [Variables de entorno](../05-Referencia/Variables-Entorno.md#postgresql-y-auth).
 
 ## Migraciones
 
@@ -73,7 +53,7 @@ docker compose exec backend alembic upgrade head
 Con el wrapper usado en este entorno:
 
 ```bash
-sg docker -c "docker-compose exec backend alembic upgrade head"
+sg docker -c "docker compose exec backend alembic upgrade head"
 ```
 
 ## Bootstrap Inicial
@@ -196,17 +176,7 @@ La base incluye `AuditMixin` con `created_by_id`, `created_at` y `updated_at` pa
 
 ## Validacion Rapida
 
-```bash
-curl http://localhost:8000/api/events/health
-curl -c cookies.txt -b cookies.txt -X POST http://localhost:8000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
-curl -b cookies.txt http://localhost:8000/api/auth/me
-curl -b cookies.txt http://localhost:8000/api/events/latest?limit=3
-CSRF=$(awk '/suricata_csrf/ {print $7}' cookies.txt)
-curl -b cookies.txt -X POST http://localhost:8000/api/auth/logout \
-  -H "X-CSRF-Token: $CSRF"
-```
+Usar [Auth por consola](../05-Referencia/Comandos.md#auth-por-consola).
 
 Resultados esperados:
 

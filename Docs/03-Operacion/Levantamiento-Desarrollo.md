@@ -1,72 +1,41 @@
-# Levantamiento en Desarrollo
+# Levantamiento En Desarrollo
 
-Guia para levantar el stack en entorno local o laboratorio usando `docker-compose.yml`.
+Guia para levantar el stack local/laboratorio con `docker-compose.yml`.
 
-## 1. Prerequisitos
+## Prerequisitos
 
 - Docker Engine activo.
 - Docker Compose disponible.
 - Permisos para ejecutar Docker.
 - Linux recomendado para captura/IPS con Suricata.
 
-Ver interfaces disponibles, util si usaras modo IDS:
+Variables completas: [Variables de entorno](../05-Referencia/Variables-Entorno.md).
 
-```bash
-ip -o link show | awk -F': ' '{print $2}'
-```
-
-## 2. Preparar variables
-
-Desde la raiz del proyecto:
+## Preparar `.env`
 
 ```bash
 cp .env.example .env
 ```
 
-Revisar `.env`:
+Revisa especialmente:
 
-```env
-STACK_VERSION=8.19.14
-SURICATA_MODE=ips
-SURICATA_INTERFACE=wlp0s20f3
-BACKEND_JWT_SECRET=change-me
-BACKEND_INITIAL_ADMIN_USERNAME=admin
-BACKEND_INITIAL_ADMIN_PASSWORD=admin123
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_WS_URL=ws://localhost:8000/ws
-```
+- `SURICATA_MODE`
+- `SURICATA_INTERFACE` si usas IDS.
+- `BACKEND_JWT_SECRET`
+- `BACKEND_INITIAL_ADMIN_PASSWORD`
+- URLs `NEXT_PUBLIC_API_URL` y `NEXT_PUBLIC_WS_URL`.
 
-Notas:
+Para laboratorio puedes usar credenciales por defecto. En redes compartidas, cambia secretos antes del primer arranque.
 
-- `SURICATA_MODE=ips` es el modo por defecto del proyecto.
-- `SURICATA_INTERFACE` solo se usa en modo `ids`.
-- Si cambias a `SURICATA_MODE=ids`, usa una interfaz real del host.
-- Para laboratorio puedes usar las credenciales por defecto; para cualquier red compartida cambia `BACKEND_JWT_SECRET` y `BACKEND_INITIAL_ADMIN_PASSWORD` antes del primer arranque.
+## Levantar
 
-## 3. Levantar el stack
-
-Opcion automatizada recomendada:
+Opcion recomendada:
 
 ```bash
 ./scripts/dev-up.sh
 ```
 
-El script:
-
-- crea `.env` minimo si no existe;
-- levanta el stack con `docker compose up -d --build`;
-- pide un usuario y password para crear un admin nuevo;
-- desactiva el usuario bootstrap `admin` si existe y es distinto al admin nuevo;
-- aplica el perfil activo de Suricata;
-- valida backend, frontend, Redis, IPS/NFQUEUE y reglas cargadas.
-
-Tambien puedes pasar credenciales sin prompt:
-
-```bash
-DEV_ADMIN_USERNAME=mauricio DEV_ADMIN_PASSWORD='cambia-este-password' ./scripts/dev-up.sh
-```
-
-Nota: el endpoint `DELETE /api/auth/users/{id}` desactiva usuarios; no hace borrado fisico en base de datos para evitar dejar el sistema sin admins y preservar consistencia.
+El script levanta servicios, puede crear un admin nuevo, desactiva el bootstrap `admin` si corresponde, aplica el perfil activo y valida los puntos principales.
 
 Opcion manual:
 
@@ -74,7 +43,9 @@ Opcion manual:
 docker compose up -d --build
 ```
 
-Servicios levantados:
+Comandos comunes: [Comandos de referencia](../05-Referencia/Comandos.md).
+
+## Servicios
 
 - `elasticsearch`
 - `suricata`
@@ -86,103 +57,51 @@ Servicios levantados:
 - `backend`
 - `frontend`
 
-## 4. Verificar arranque
+## Verificar
+
+Verificacion rapida:
 
 ```bash
 docker compose ps
-curl http://localhost:9200
 curl http://localhost:8000/api/events/health
-docker exec redis redis-cli PING
+curl http://localhost:3000
 ```
 
-Frontend disponible en:
+Checklist completo: [Inicio y verificacion](Inicio-y-Verificacion.md).
 
-```text
-http://localhost:3000
-```
+Frontend: `http://localhost:3000`
 
-Credenciales iniciales de laboratorio:
+Credenciales bootstrap de laboratorio: `admin` / `admin123`.
 
-```text
-usuario: admin
-password: admin123
-```
+## Aplicar Reglas Suricata
 
-Tambien puedes validar auth por consola:
+En un arranque limpio, aplica el perfil activo desde el panel `/suricata` o por consola usando [Aplicar perfil Suricata](../05-Referencia/Comandos.md#aplicar-perfil-suricata).
 
-```bash
-curl -c cookies.txt -b cookies.txt -X POST http://localhost:8000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
-curl -b cookies.txt http://localhost:8000/api/auth/me
-```
+Valida IPS y reglas con [IPS y reglas](../05-Referencia/Comandos.md#ips-y-reglas).
 
-En un arranque limpio, aplica el perfil activo para generar y recargar reglas de Suricata:
+## Generar Trafico De Prueba
 
-```bash
-CSRF=$(awk '/suricata_csrf/ {print $7}' cookies.txt)
-PROFILE_ID=$(curl -fsS -b cookies.txt http://localhost:8000/api/suricata/profiles \
-  | python3 -c 'import json,sys; print(next(p["id"] for p in json.load(sys.stdin) if p.get("is_active")))')
+Usa los comandos de [Redis realtime](../05-Referencia/Comandos.md#redis-realtime) y revisa `/live`.
 
-curl -fsS -b cookies.txt -X POST http://localhost:8000/api/suricata/apply \
-  -H "Content-Type: application/json" \
-  -H "X-CSRF-Token: $CSRF" \
-  -d "{\"profile_id\":\"$PROFILE_ID\"}"
-```
-
-Verifica que Suricata quedo en IPS y con reglas:
-
-```bash
-docker exec suricata iptables -L OUTPUT -n
-docker exec suricata wc -l /var/lib/suricata/rules/suricata.rules
-docker logs suricata --tail=40
-```
-
-## 5. Generar trafico de prueba
-
-```bash
-ping -c 4 8.8.8.8
-curl http://neverssl.com
-curl http://example.com
-```
-
-Luego revisa:
-
-```bash
-curl http://localhost:9200/_cat/indices?v
-curl -b cookies.txt 'http://localhost:8000/api/events/latest?limit=3'
-```
-
-Para validar realtime:
-
-```bash
-docker exec redis redis-cli SUBSCRIBE suricata
-```
-
-Genera trafico desde otra terminal y deberias ver eventos publicados.
-
-El dashboard Next.js tambien debe actualizarse en `http://localhost:3000` si el backend esta conectado por WebSocket.
-
-Para ejecutar todas las verificaciones principales:
+Para ejecutar las verificaciones principales:
 
 ```bash
 ./scripts/dev-check.sh
 ```
 
-## 6. Apagar
-
-Apagado normal:
+## Apagar
 
 ```bash
 docker compose down
 ```
 
-Apagado con limpieza de volumenes, destructivo:
+Limpieza destructiva:
 
 ```bash
 docker compose down -v
 ```
 
-## Siguiente paso
+## Si Algo Falla
 
-Si algo no aparece, usa [Inicio y Verificacion](Inicio-y-Verificacion.md) y luego [Troubleshooting](Troubleshooting.md).
+1. [Inicio y verificacion](Inicio-y-Verificacion.md)
+2. [Troubleshooting](Troubleshooting.md)

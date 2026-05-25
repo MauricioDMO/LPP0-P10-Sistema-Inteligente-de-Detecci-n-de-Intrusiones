@@ -1,43 +1,31 @@
-# Inicio y Verificacion
+# Inicio Y Verificacion
 
-Checklist para confirmar que el stack funciona de extremo a extremo. Usa esta guia despues de levantar desarrollo o produccion.
+Checklist para confirmar que el stack funciona de extremo a extremo despues de levantar [desarrollo](Levantamiento-Desarrollo.md) o [produccion basica](Levantamiento-Produccion.md).
 
-## Rutas de arranque
-
-- Desarrollo: [Levantamiento-Desarrollo.md](Levantamiento-Desarrollo.md)
-- Produccion basica: [Levantamiento-Produccion.md](Levantamiento-Produccion.md)
+Comandos completos: [Comandos de referencia](../05-Referencia/Comandos.md).
 
 ## 1. Servicios Docker
-
-Desarrollo:
 
 ```bash
 docker compose ps
 ```
 
-Produccion:
+En produccion:
 
 ```bash
 docker compose -f docker-compose.prod.yml ps
 ```
 
-Todos los servicios deben estar en estado `Up` o `running`.
+Esperado: todos los servicios principales aparecen `Up` o `running`.
 
 ## 2. Elasticsearch
 
 ```bash
-curl http://localhost:9200
 curl http://localhost:9200/_cluster/health
 curl http://localhost:9200/_cat/indices?v
 ```
 
-En produccion basica usa `http://127.0.0.1:9200`.
-
-Resultado esperado:
-
-- Elasticsearch responde HTTP.
-- El cluster esta `green` o `yellow`.
-- Aparecen indices `suricata-*` despues de generar trafico.
+Esperado: cluster `green` o `yellow`; indices `suricata-*` despues de generar trafico.
 
 ## 3. Redis
 
@@ -46,111 +34,55 @@ docker exec redis redis-cli PING
 docker exec redis redis-cli PUBSUB NUMSUB suricata
 ```
 
-Resultado esperado:
+Esperado: `PONG`; suscriptores cuando hay clientes conectados.
 
-- `PING` responde `PONG`.
-- `NUMSUB` muestra suscriptores cuando hay clientes conectados.
-
-Prueba realtime:
-
-```bash
-docker exec redis redis-cli SUBSCRIBE suricata
-```
-
-Deja ese comando abierto y genera trafico desde otra terminal.
-
-## 4. Logstash
+## 4. Logstash Y Filebeat
 
 ```bash
 docker logs logstash | grep "Pipelines running"
-docker logs logstash | grep -i "error\|exception"
+docker compose logs --tail=100 filebeat
 ```
 
-Resultado esperado:
-
-- La pipeline `main` aparece corriendo.
-- No hay errores persistentes de conexion a Elasticsearch o Redis.
+Esperado: pipeline activa y Filebeat publicando a Logstash sin errores persistentes.
 
 ## 5. Suricata
 
 ```bash
 docker compose logs --tail=100 suricata
+docker exec suricata iptables -L OUTPUT -n
 ```
 
-Generar trafico:
+Genera trafico con [comandos de prueba](../05-Referencia/Comandos.md#redis-realtime).
+
+Esperado: Suricata sigue corriendo, genera `eve.json` y en IPS muestra reglas NFQUEUE.
+
+## 6. Backend Y Auth
 
 ```bash
-ping -c 4 8.8.8.8
-curl http://neverssl.com
-curl http://example.com
-```
-
-Resultado esperado:
-
-- Suricata se mantiene corriendo.
-- Se generan eventos en `eve.json`.
-- En modo IPS, reglas `reject` pueden bloquear trafico segun `suricata.rules`.
-
-## 6. Filebeat
-
-```bash
-docker compose logs --tail=100 filebeat
-docker logs filebeat | grep -i logstash
-```
-
-Resultado esperado:
-
-- Filebeat lee `/var/log/suricata/eve.json`.
-- Filebeat logra publicar eventos en Logstash.
-
-## 7. Backend Y Auth
-
-```bash
-curl http://localhost:8000/
 curl http://localhost:8000/api/events/health
 curl -c cookies.txt -b cookies.txt -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
 curl -b cookies.txt http://localhost:8000/api/auth/me
-curl -b cookies.txt http://localhost:8000/api/events/latest?limit=3
-curl -b cookies.txt http://localhost:8000/api/analytics/overview?hours=24
-curl -b cookies.txt "http://localhost:8000/api/analytics/top-ips?hours=24&direction=source&size=5"
 ```
 
-En produccion basica usa `http://127.0.0.1:8000`.
+Esperado: health `ok`, login crea cookies y `/api/auth/me` devuelve usuario autenticado.
 
-Resultado esperado:
+API completa: [API del backend](../02-Componentes/backend/API.md).
 
-- El backend responde HTTP.
-- `/api/events/health` retorna `status: ok`.
-- Login crea cookies `suricata_session` y `suricata_csrf`.
-- `/api/auth/me` retorna el usuario autenticado.
-- `/api/events/latest` devuelve eventos si Elasticsearch ya tiene indices.
-- `/api/analytics/overview` y `/api/analytics/top-ips` devuelven agregados si existen eventos en Elasticsearch.
+## 7. Frontend
 
-## 8. Frontend Next.js
+Abrir `http://localhost:3000`.
 
-Abrir:
+Esperado:
 
-```text
-http://localhost:3000
-```
+- Redirecciona a `/login` si no hay sesion.
+- Tras login, carga `/live`.
+- WebSocket queda conectado.
+- Al generar trafico aparecen eventos si el pipeline esta activo.
+- `/historical`, `/blocked`, `/geo` y `/rankings` cargan datos si Elasticsearch tiene eventos.
 
-En produccion basica:
-
-```text
-http://127.0.0.1:3000
-```
-
-Resultado esperado:
-
-- El frontend muestra `/login` si no hay sesion.
-- Despues del login, el dashboard carga.
-- El estado WebSocket cambia a conectado cuando el backend esta disponible y la sesion es valida.
-- Al generar trafico, aparecen eventos en tabla, graficas y mapa cuando contienen datos geograficos.
-- Las vistas `/historical`, `/blocked`, `/geo` y `/rankings` cargan datos historicos si Elasticsearch tiene eventos.
-
-## Checklist final
+## Checklist Final
 
 - [ ] Docker muestra servicios arriba.
 - [ ] Elasticsearch responde en `9200`.
@@ -159,8 +91,8 @@ Resultado esperado:
 - [ ] Suricata sigue corriendo despues de generar trafico.
 - [ ] Filebeat envia eventos a Logstash.
 - [ ] Existen indices `suricata-*`.
-- [ ] Redis publica eventos en el canal `suricata` si hay suscriptor.
+- [ ] Redis publica eventos si hay suscriptor.
 - [ ] Backend responde en `8000`.
-- [ ] Login funciona con el admin inicial.
-- [ ] Endpoints protegidos responden con cookies de sesion.
-- [ ] Frontend Next.js carga en `3000` y permite entrar a `/live`.
+- [ ] Login funciona.
+- [ ] Endpoints protegidos responden con cookie de sesion.
+- [ ] Frontend carga en `3000` y permite entrar a `/live`.
