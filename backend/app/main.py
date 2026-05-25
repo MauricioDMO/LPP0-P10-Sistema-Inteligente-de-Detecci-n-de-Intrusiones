@@ -17,7 +17,8 @@ from .enriched_writer import ensure_enriched_template, persist_enriched_event
 from . import notifier
 from .db import AsyncSessionLocal
 from .db.seed import bootstrap_suricata_management
-from .routes import analytics, auth, events, lists, suricata
+from . import system_state
+from .routes import analytics, auth, events, lists, suricata, system
 from .security import decode_access_token
 from .services.auth_service import bootstrap_auth
 from .services.auth_service import get_user_by_id
@@ -94,6 +95,7 @@ async def broadcast_event(event: dict) -> None:
 async def event_callback(event: dict) -> None:
     """Callback que se ejecuta cuando llega un evento de Redis."""
     event = await enrich_event(event)
+    system_state.record_event(event)
     asyncio.create_task(persist_enriched_event(event))
     await notifier.process_event(event)
     if current_filter.matches(event):
@@ -112,6 +114,7 @@ async def start_consumer():
     )
 
     if await redis_consumer.connect():
+        system_state.set_redis_connected(True)
         if await redis_consumer.subscribe():
             redis_consumer.on_event(event_callback)
             listen_task = asyncio.create_task(redis_consumer.listen())
@@ -119,6 +122,7 @@ async def start_consumer():
         else:
             logger.error("✗ No se pudo suscribir al canal")
     else:
+        system_state.set_redis_connected(False)
         logger.error("✗ No se pudo conectar a Redis")
 
 
@@ -135,6 +139,7 @@ async def stop_consumer():
 
     if redis_consumer:
         await redis_consumer.disconnect()
+        system_state.set_redis_connected(False)
         logger.info("✓ Consumidor de Redis detenido")
 
 
@@ -189,6 +194,7 @@ app.include_router(auth.router)
 app.include_router(events.router)
 app.include_router(lists.router)
 app.include_router(suricata.router)
+app.include_router(system.router)
 
 
 @app.get("/")
@@ -233,6 +239,7 @@ async def websocket_endpoint(
 
     await websocket.accept()
     active_websockets.add(websocket)
+    system_state.set_websocket_clients(len(active_websockets))
 
     # Parsear y aplicar filtro según query params
     event_type_list = None
@@ -271,10 +278,12 @@ async def websocket_endpoint(
 
     except WebSocketDisconnect:
         active_websockets.discard(websocket)
+        system_state.set_websocket_clients(len(active_websockets))
         logger.info(f"Cliente desconectado. Conexiones activas: {len(active_websockets)}")
     except Exception as e:
         logger.error(f"Error en WebSocket: {e}")
         active_websockets.discard(websocket)
+        system_state.set_websocket_clients(len(active_websockets))
 
 
 @app.websocket("/ws/suricata/apply")

@@ -60,6 +60,9 @@ class Settings(BaseSettings):
 
     # Suricata management
     suricata_container_name: str = "suricata"
+    suricata_mode: str = "ips"
+    filebeat_container_name: str = "filebeat"
+    logstash_container_name: str = "logstash"
 
     class Config:
         env_file = ".env"

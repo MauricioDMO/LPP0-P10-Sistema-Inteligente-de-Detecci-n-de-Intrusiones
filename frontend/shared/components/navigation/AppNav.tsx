@@ -9,6 +9,7 @@ import {
   IconHistory,
   IconLogout,
   IconMenu2,
+  IconServerCog,
   IconUsers,
   IconShieldLock,
   IconX,
@@ -28,6 +29,7 @@ const navItems: Array<{ href: string; label: string; detail: string; icon: NavIc
   { href: "/historical", label: "Histórico", detail: "Elasticsearch", icon: IconHistory },
   { href: "/rankings", label: "Rankings", detail: "Top N", icon: IconChartBar },
   { href: "/blocked", label: "Bloqueos", detail: "IPS", icon: IconShieldLock },
+  { href: "/system", label: "Sistema", detail: "Salud", icon: IconServerCog, roles: ["admin", "analyst", "viewer"] },
   { href: "/suricata", label: "Suricata", detail: "Reglas", icon: SuricataLogo, roles: ["admin", "analyst"] },
   { href: "/admin/users", label: "Usuarios", detail: "Admin", icon: IconUsers, roles: ["admin"] },
 ];
