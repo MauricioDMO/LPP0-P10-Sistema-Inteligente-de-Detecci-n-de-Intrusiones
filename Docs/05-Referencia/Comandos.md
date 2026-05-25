@@ -62,6 +62,52 @@ Indices Elasticsearch:
 curl http://localhost:9200/_cat/indices?v
 ```
 
+## GeoIP Local
+
+El backend usa `/data/GeoLite2-City.mmdb` si existe. Si falta, usa fallback `ip-api.com`. Para descargar la base local se usa el servicio opcional `geoipupdate` con credenciales MaxMind documentadas en [Variables De Entorno](Variables-Entorno.md#geolite2-city-local).
+
+Configura `.env`:
+
+```env
+MAXMIND_ACCOUNT_ID=123456
+MAXMIND_LICENSE_KEY=tu_license_key
+MAXMIND_EDITION_IDS=GeoLite2-City
+MAXMIND_UPDATE_FREQUENCY=72
+BACKEND_GEOIP_DB_PATH=/data/GeoLite2-City.mmdb
+```
+
+Descargar o actualizar GeoLite2 manualmente:
+
+```bash
+docker compose --profile geoip run --rm geoipupdate
+```
+
+Mantener el actualizador corriendo cada `MAXMIND_UPDATE_FREQUENCY` horas:
+
+```bash
+docker compose --profile geoip up -d geoipupdate
+```
+
+Recrear backend para que monte el volumen y lea la base local:
+
+```bash
+docker compose up -d backend
+```
+
+Verificar archivo dentro del backend:
+
+```bash
+docker exec backend ls -lh /data/GeoLite2-City.mmdb
+```
+
+Ver logs del actualizador:
+
+```bash
+docker compose logs --tail=50 geoipupdate
+```
+
+Si no configuras `MAXMIND_ACCOUNT_ID` y `MAXMIND_LICENSE_KEY`, no actives el perfil `geoip`; el fallback `ip-api.com` seguira funcionando.
+
 ## Logs
 
 ```bash

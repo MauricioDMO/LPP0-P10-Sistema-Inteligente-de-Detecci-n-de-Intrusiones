@@ -168,6 +168,21 @@ services:
       BACKEND_SURICATA_CONTAINER_NAME: ${BACKEND_SURICATA_CONTAINER_NAME:-suricata}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - geoip-data:/data:ro
+    restart: unless-stopped
+
+  geoipupdate:
+    image: ghcr.io/maxmind/geoipupdate:latest
+    container_name: geoipupdate
+    profiles:
+      - geoip
+    environment:
+      GEOIPUPDATE_ACCOUNT_ID: ${MAXMIND_ACCOUNT_ID:-}
+      GEOIPUPDATE_LICENSE_KEY: ${MAXMIND_LICENSE_KEY:-}
+      GEOIPUPDATE_EDITION_IDS: ${MAXMIND_EDITION_IDS:-GeoLite2-City}
+      GEOIPUPDATE_FREQUENCY: ${MAXMIND_UPDATE_FREQUENCY:-72}
+    volumes:
+      - geoip-data:/usr/share/GeoIP
     restart: unless-stopped
 
   frontend:
@@ -194,3 +209,4 @@ volumes:
   suricata-logs:
   suricata-rules:
   postgres-data:
+  geoip-data:

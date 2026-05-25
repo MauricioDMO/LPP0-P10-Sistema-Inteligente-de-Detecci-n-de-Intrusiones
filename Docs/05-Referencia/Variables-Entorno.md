@@ -51,13 +51,39 @@ El admin inicial solo se crea si PostgreSQL no tiene usuarios. Cambiar `BACKEND_
 BACKEND_TELEGRAM_BOT_TOKEN=
 BACKEND_ABUSEIPDB_KEY=
 BACKEND_GEOIP_DB_PATH=/data/GeoLite2-City.mmdb
+MAXMIND_ACCOUNT_ID=
+MAXMIND_LICENSE_KEY=
+MAXMIND_EDITION_IDS=GeoLite2-City
+MAXMIND_UPDATE_FREQUENCY=72
 BACKEND_ENRICHED_INDEX_ENABLED=true
 ```
 
 - `BACKEND_TELEGRAM_BOT_TOKEN`: token del bot usado por las notificaciones Telegram.
 - `BACKEND_ABUSEIPDB_KEY`: habilita reputacion AbuseIPDB.
 - `BACKEND_GEOIP_DB_PATH`: ruta del GeoLite2 City DB dentro del contenedor backend.
+- `MAXMIND_ACCOUNT_ID`: ID de cuenta MaxMind usado por el servicio `geoipupdate`.
+- `MAXMIND_LICENSE_KEY`: license key MaxMind usado para descargar GeoLite2.
+- `MAXMIND_EDITION_IDS`: bases MaxMind a descargar. Para el backend debe incluir `GeoLite2-City`.
+- `MAXMIND_UPDATE_FREQUENCY`: frecuencia de actualizacion de `geoipupdate` en horas.
 - `BACKEND_ENRICHED_INDEX_ENABLED`: persiste copias enriquecidas en `suricata-enriched-*`.
+
+### GeoLite2 City Local
+
+El backend busca por defecto `GeoLite2-City.mmdb` en `/data/GeoLite2-City.mmdb`. Si no existe, usa fallback `ip-api.com`; el sistema funciona, pero depende de internet y puede ser mas lento o limitado por rate limits.
+
+Para usar la base local, crea una cuenta gratuita en MaxMind y genera una license key:
+
+1. Entra a <https://dev.maxmind.com/geoip/geolite2-free-geolocation-data>.
+2. Crea una cuenta o inicia sesion en MaxMind.
+3. Confirma el correo si MaxMind lo solicita.
+4. En el portal de MaxMind, entra a `Account` y busca tu `Account ID`.
+5. Entra a `Manage License Keys`.
+6. Crea una nueva license key para GeoIP update.
+7. Copia el `Account ID` en `MAXMIND_ACCOUNT_ID` y la key en `MAXMIND_LICENSE_KEY`.
+8. Deja `MAXMIND_EDITION_IDS=GeoLite2-City`.
+9. Activa el servicio con el perfil `geoip`; ver [Comandos](Comandos.md#geoip-local).
+
+No guardes credenciales MaxMind dentro de Dockerfiles ni imagenes. Usa `.env` local o variables de entorno del host.
 
 ## Frontend
 
