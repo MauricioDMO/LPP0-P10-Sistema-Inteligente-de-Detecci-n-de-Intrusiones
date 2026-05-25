@@ -12,8 +12,8 @@ import { ActionButton, formatDate, StatusPill } from "./suricata-ui";
 
 const navItems = [
   { href: "/suricata", group: "Inicio", label: "Resumen", detail: "Estado y guía", icon: IconShieldCog },
-  { href: "/suricata/profiles", group: "Configurar", label: "Perfiles", detail: "Modo IDS/IPS", icon: IconAdjustments },
   { href: "/suricata/sources", group: "Configurar", label: "Fuentes", detail: "Rulesets externos", icon: IconServerCog },
+  { href: "/suricata/profiles", group: "Configurar", label: "Perfiles", detail: "Modo IDS/IPS", icon: IconAdjustments },
   { href: "/suricata/overrides", group: "Reglas", label: "Overrides", detail: "Cambios por SID", icon: IconListDetails },
   { href: "/suricata/custom-rules", group: "Reglas", label: "Reglas locales", detail: "Firmas propias", icon: IconFileCode },
   { href: "/suricata/lists", group: "Reglas", label: "Listas", detail: "Block/Allow", icon: IconListCheck },
