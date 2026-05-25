@@ -59,8 +59,8 @@ El seed inicial en `backend/app/db/seed/suricata.py` crea, si hace falta:
 
 - perfil base activo.
 - fuentes externas compatibles con `suricata-update`.
-- bloqueo/deteccion de YouTube y YouTube Music por TLS, HTTP y DNS.
-- bloqueo/deteccion de sitios adultos por TLS, HTTP y DNS.
+- bloqueo/deteccion de YouTube y YouTube Music por TLS, HTTP y DNS, con firmas sembradas que usan prefijo `[BLOCKED]`.
+- bloqueo/deteccion de sitios adultos por TLS, HTTP y DNS, con firmas sembradas que usan prefijo `[BLOQUEO]`.
 - bloqueo UDP/443 para reducir evasión por QUIC/HTTP3 en sitios adultos.
 
 `suricata-update` genera el archivo runtime en el volumen `suricata-rules`. El YAML solo carga:
