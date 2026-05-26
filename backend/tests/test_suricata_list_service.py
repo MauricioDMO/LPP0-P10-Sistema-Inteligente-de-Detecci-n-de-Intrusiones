@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.services.suricata_list_service import normalize_list_value, preview_generated_rules, validate_list_entry
 
 
-def entry(list_type: str, entry_type: str, value: str, action: str, direction: str = "destination", enabled: bool = True):
+def entry(list_type: str, entry_type: str, value: str, action: str, direction: str = "destination", enabled: bool = True, notify_enabled: bool = False):
     return SimpleNamespace(
         id=uuid.uuid4(),
         list_type=list_type,
@@ -19,6 +19,7 @@ def entry(list_type: str, entry_type: str, value: str, action: str, direction: s
         action=action,
         direction=direction,
         enabled=enabled,
+        notify_enabled=notify_enabled,
         created_at=datetime.now(timezone.utc),
     )
 
