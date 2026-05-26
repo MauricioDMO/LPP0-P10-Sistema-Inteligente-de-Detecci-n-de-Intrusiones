@@ -79,6 +79,7 @@ async def create_entry_by_type(
         action=action,
         reason=payload.reason,
         enabled=payload.enabled,
+        notify_enabled=payload.notify_enabled,
         created_by_id=user.id,
         updated_by_id=user.id,
     )

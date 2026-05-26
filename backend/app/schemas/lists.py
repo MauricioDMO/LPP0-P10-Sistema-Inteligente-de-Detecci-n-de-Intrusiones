@@ -20,6 +20,7 @@ class ListEntryBase(BaseModel):
     action: ListAction | None = None
     reason: str | None = None
     enabled: bool = True
+    notify_enabled: bool = False
 
     @field_validator("value")
     @classmethod
@@ -38,6 +39,7 @@ class ListEntryUpdate(BaseModel):
     action: ListAction | None = None
     reason: str | None = None
     enabled: bool | None = None
+    notify_enabled: bool | None = None
 
     @field_validator("value")
     @classmethod
@@ -57,6 +59,7 @@ class ListEntryResponse(BaseModel):
     action: str
     reason: str | None
     enabled: bool
+    notify_enabled: bool
     generated_rule_ids: list[str]
     created_by_id: UUID | None
     updated_by_id: UUID | None

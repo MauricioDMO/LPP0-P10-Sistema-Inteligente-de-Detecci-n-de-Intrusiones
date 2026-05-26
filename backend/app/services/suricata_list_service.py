@@ -112,6 +112,7 @@ async def sync_profile_list_rules(session: Any, profile_id: uuid.UUID) -> list[t
             description="Regla generada automaticamente desde listas negras/blancas",
             rule_text=rule_text,
             enabled=True,
+            notify_enabled=entry.notify_enabled,
             validation_status=status,
             validation_error=error,
         )

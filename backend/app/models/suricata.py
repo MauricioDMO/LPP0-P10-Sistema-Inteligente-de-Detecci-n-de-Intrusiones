@@ -118,6 +118,7 @@ class SuricataListEntry(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     action: Mapped[str] = mapped_column(String(10), nullable=False)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
+    notify_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
     generated_rule_ids: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list, server_default="[]")
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     updated_by_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
