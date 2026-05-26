@@ -52,6 +52,9 @@ sysctl -w "net.ipv6.conf.${WAN_IF}.disable_ipv6=1" || true
 
 echo "[5/7] Removing previous gateway rules..."
 iptables -t nat -D POSTROUTING -s "$LAN_NET" -o "$WAN_IF" -j MASQUERADE 2>/dev/null || true
+iptables -D FORWARD -i "$LAN_IF" -o "$WAN_IF" -p udp --dport 443 -j REJECT 2>/dev/null || true
+iptables -D FORWARD -i "$LAN_IF" -o "$WAN_IF" -p tcp --dport 853 -j REJECT 2>/dev/null || true
+iptables -D FORWARD -i "$LAN_IF" -o "$WAN_IF" -p udp --dport 853 -j REJECT 2>/dev/null || true
 iptables -D FORWARD -i "$LAN_IF" -o "$WAN_IF" -j NFQUEUE --queue-num "$NFQUEUE_NUM" 2>/dev/null || true
 iptables -D FORWARD -i "$WAN_IF" -o "$LAN_IF" -j NFQUEUE --queue-num "$NFQUEUE_NUM" 2>/dev/null || true
 
@@ -61,6 +64,15 @@ iptables -t nat -A POSTROUTING -s "$LAN_NET" -o "$WAN_IF" -j MASQUERADE
 echo "[7/7] Applying FORWARD NFQUEUE fail-closed..."
 iptables -I FORWARD 1 -i "$LAN_IF" -o "$WAN_IF" -j NFQUEUE --queue-num "$NFQUEUE_NUM"
 iptables -I FORWARD 2 -i "$WAN_IF" -o "$LAN_IF" -j NFQUEUE --queue-num "$NFQUEUE_NUM"
+
+if [[ "${BLOCK_QUIC:-true}" == "true" ]]; then
+  iptables -I FORWARD 1 -i "$LAN_IF" -o "$WAN_IF" -p udp --dport 443 -j REJECT
+fi
+
+if [[ "${BLOCK_DOT:-true}" == "true" ]]; then
+  iptables -I FORWARD 1 -i "$LAN_IF" -o "$WAN_IF" -p tcp --dport 853 -j REJECT
+  iptables -I FORWARD 1 -i "$LAN_IF" -o "$WAN_IF" -p udp --dport 853 -j REJECT
+fi
 
 echo "Restarting dnsmasq..."
 systemctl restart dnsmasq

@@ -34,6 +34,9 @@ for var in "${required_vars[@]}"; do
 done
 
 iptables -t nat -D POSTROUTING -s "$LAN_NET" -o "$WAN_IF" -j MASQUERADE 2>/dev/null || true
+iptables -D FORWARD -i "$LAN_IF" -o "$WAN_IF" -p udp --dport 443 -j REJECT 2>/dev/null || true
+iptables -D FORWARD -i "$LAN_IF" -o "$WAN_IF" -p tcp --dport 853 -j REJECT 2>/dev/null || true
+iptables -D FORWARD -i "$LAN_IF" -o "$WAN_IF" -p udp --dport 853 -j REJECT 2>/dev/null || true
 iptables -D FORWARD -i "$LAN_IF" -o "$WAN_IF" -j NFQUEUE --queue-num "$NFQUEUE_NUM" 2>/dev/null || true
 iptables -D FORWARD -i "$WAN_IF" -o "$LAN_IF" -j NFQUEUE --queue-num "$NFQUEUE_NUM" 2>/dev/null || true
 
