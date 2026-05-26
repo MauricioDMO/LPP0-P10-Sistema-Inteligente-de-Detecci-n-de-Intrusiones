@@ -7,11 +7,12 @@ Indice tecnico y operativo del stack Suricata, Filebeat, Logstash, Redis, Elasti
 1. [Arquitectura](01-Arquitectura/Arquitectura.md)
 2. [Flujo backend/frontend](01-Arquitectura/Flujo-y-Backend.md)
 3. [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md)
-4. [Verificacion end-to-end](03-Operacion/Inicio-y-Verificacion.md)
-5. [Demo y evaluacion](03-Operacion/Demo-Evaluacion.md)
-6. [Panel Suricata](03-Operacion/Manual-Panel-Suricata.md)
-7. [API backend](02-Componentes/backend/API.md)
-8. [Troubleshooting](03-Operacion/Troubleshooting.md)
+4. [Levantamiento gateway](03-Operacion/Levantamiento-Gateway.md)
+5. [Verificacion end-to-end](03-Operacion/Inicio-y-Verificacion.md)
+6. [Demo y evaluacion](03-Operacion/Demo-Evaluacion.md)
+7. [Panel Suricata](03-Operacion/Manual-Panel-Suricata.md)
+8. [API backend](02-Componentes/backend/API.md)
+9. [Troubleshooting](03-Operacion/Troubleshooting.md)
 
 ## Por Tarea
 
@@ -20,6 +21,7 @@ Indice tecnico y operativo del stack Suricata, Filebeat, Logstash, Redis, Elasti
 | Entender el sistema completo | [Arquitectura](01-Arquitectura/Arquitectura.md) |
 | Entender persistencia vs realtime | [Flujo backend/frontend](01-Arquitectura/Flujo-y-Backend.md) |
 | Levantar el laboratorio | [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md) |
+| Levantar el gateway con AP/router | [Levantamiento gateway](03-Operacion/Levantamiento-Gateway.md) |
 | Levantar produccion basica | [Levantamiento en produccion](03-Operacion/Levantamiento-Produccion.md) |
 | Validar extremo a extremo | [Inicio y verificacion](03-Operacion/Inicio-y-Verificacion.md) |
 | Preparar exposicion/evidencias | [Demo y evaluacion](03-Operacion/Demo-Evaluacion.md) |
@@ -43,6 +45,7 @@ Indice tecnico y operativo del stack Suricata, Filebeat, Logstash, Redis, Elasti
 ## Operacion
 
 - [Levantamiento en desarrollo](03-Operacion/Levantamiento-Desarrollo.md)
+- [Levantamiento gateway](03-Operacion/Levantamiento-Gateway.md)
 - [Levantamiento en produccion](03-Operacion/Levantamiento-Produccion.md)
 - [Inicio y verificacion](03-Operacion/Inicio-y-Verificacion.md)
 - [Demo y evaluacion](03-Operacion/Demo-Evaluacion.md)

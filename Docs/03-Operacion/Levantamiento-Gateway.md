@@ -27,12 +27,14 @@ El modo normal se sigue levantando con el `.env` del proyecto y no usa las varia
 - `gateway/scripts/gateway.env.example`: variables de interfaces, LAN, DHCP y NFQUEUE.
 - `gateway/scripts/render-config.sh`: renderiza templates con variables reales.
 - `gateway/scripts/install-symlinks.sh`: instala symlinks y configs renderizadas.
-- `gateway/scripts/apply-gateway.sh`: aplica IP LAN, forwarding, NAT y NFQUEUE.
+- `gateway/scripts/apply-gateway.sh`: aplica IP LAN, forwarding, NAT, bloqueos QUIC/DoT y NFQUEUE.
 - `gateway/scripts/start-gateway.sh`: instala, aplica gateway y levanta Docker Compose.
 - `gateway/scripts/cleanup-gateway.sh`: limpia reglas NAT/NFQUEUE.
 - `gateway/scripts/unmount.sh`: baja compose y elimina symlinks/configs renderizadas.
 - `gateway/templates/dnsmasq-lab.conf.tpl`: template DHCP.
 - `gateway/sysctl-suricata-gateway.conf`: sysctl persistente.
+- `/etc/systemd/system/suricata-gateway.service`: servicio instalado en la VM para reaplicar red gateway en cada arranque.
+- `/usr/local/sbin/suricata-gateway-wait`: helper local que espera `LAN_IF` y `WAN_IF` antes de aplicar reglas.
 - `gateway/vm/baseDeb-preseed.cfg`: preseed Debian base para la VM gateway.
 - `gateway/vm/baseDeb-usb-nic-realtek.xml`: fragmento libvirt para pasar un adaptador USB Realtek RTL8153 a la VM.
 - `gateway/vm/baseDeb-usb-nic-asix.xml`: fragmento libvirt para pasar un adaptador USB ASIX AX88179 a la VM.
@@ -170,6 +172,8 @@ DHCP_LEASE="12h"
 DNS_1="1.1.1.1"
 DNS_2="8.8.8.8"
 NFQUEUE_NUM="0"
+BLOCK_QUIC="true"
+BLOCK_DOT="true"
 PROJECT_LINK_DIR="/opt/suricata-lab"
 RENDER_DIR="/etc/suricata-lab/rendered"
 ```
@@ -209,6 +213,72 @@ WAN_IF="enx00e04c6818a3"
 
 La interfaz configurada como `WAN_IF` debe coincidir con la ruta real de salida (`ip route`). Si no coincide, NAT/NFQUEUE quedan aplicados sobre una interfaz por donde no pasa trafico.
 
+## Estado auditado del servidor actual
+
+El servidor revisado en la VM `suricata` quedo asi:
+
+```text
+Host: Debian 13, kernel 6.12
+Gestion/WAN real actual: enp1s0, 192.168.122.68/24, default via 192.168.122.1
+LAN hacia AP/router:     enx9c69d36686cc, 192.168.50.1/24
+USB externa sin uso:     enx00e04c6818a3, sin IP ni trafico
+Docker bridge:           172.18.0.1/16
+Panel frontend:          http://192.168.122.68:3000
+Backend API:             http://192.168.122.68:8000
+```
+
+El archivo real `/etc/suricata-lab/gateway.env` contiene:
+
+```env
+INTERNAL_MAC="9c:69:d3:66:86:cc"
+EXTERNAL_MAC="00:e0:4c:68:18:a3"
+LAN_IF="enx9c69d36686cc"
+WAN_IF="enp1s0"
+LAN_IP="192.168.50.1"
+LAN_CIDR="192.168.50.1/24"
+LAN_NET="192.168.50.0/24"
+DHCP_START="192.168.50.50"
+DHCP_END="192.168.50.200"
+DHCP_LEASE="12h"
+DNS_1="1.1.1.1"
+DNS_2="8.8.8.8"
+NFQUEUE_NUM="0"
+PROJECT_LINK_DIR="/opt/suricata-lab"
+RENDER_DIR="/etc/suricata-lab/rendered"
+```
+
+`dnsmasq` esta activo y usa `/etc/dnsmasq.d/suricata-lab.conf`, symlink a `/etc/suricata-lab/rendered/dnsmasq-lab.conf`. Ese archivo entrega DHCP en la LAN `192.168.50.0/24`, gateway `192.168.50.1` y DNS `1.1.1.1`, `8.8.8.8`.
+
+Las reglas activas de firewall en el servidor son:
+
+```text
+LAN -> WAN udp/853  REJECT
+LAN -> WAN tcp/853  REJECT
+LAN -> WAN udp/443  REJECT
+LAN -> WAN          NFQUEUE queue 0
+WAN -> LAN          NFQUEUE queue 0
+LAN -> WAN          MASQUERADE en POSTROUTING
+```
+
+Los rechazos de `udp/443`, `tcp/853` y `udp/853` reducen bypass por QUIC y DNS-over-TLS. El objetivo es que navegadores como Brave/Chrome caigan a trafico TLS/DNS inspeccionable por Suricata para que las reglas por dominio (`dns.query`, `tls.sni`, `http.host`) tengan mas probabilidad de aplicar.
+
+El stack Docker auditado esta compuesto por:
+
+```text
+suricata      gateway-ips, NFQUEUE 0, network_mode host
+filebeat      lee eve.json desde el volumen de logs de Suricata
+logstash      recibe Filebeat y envia a Elasticsearch + Redis
+elasticsearch almacenamiento historico
+redis         pub/sub realtime canal suricata
+backend       FastAPI, aplica reglas y expone API/WebSocket
+postgres      usuarios, perfiles y reglas gestionadas
+frontend      panel Next.js en puerto 3000
+```
+
+En PostgreSQL se observo el perfil activo `Test` en modo `IPS`. La entrada `pornhub.com` existe como lista negra de dominio, pero en el momento de auditoria estaba `enabled=false`, por lo que no aparecia como regla activa en `/var/lib/suricata/rules/suricata.rules`. Para probar bloqueo de ese dominio debe quedar habilitada y luego se debe ejecutar `Aplicar cambios` desde la UI o llamar al endpoint de apply.
+
+Nota operacional: en el servidor habia cambios locales no commiteados para publicar backend/frontend por `GATEWAY_MANAGEMENT_IP`. Si se replica desde una rama sin esos commits, el panel puede volver a publicarse solo por `192.168.50.1`.
+
 ## KVM con bridge
 
 Con KVM bridge la VM ve interfaces virtuales. En ese caso, las MACs que debe usar `gateway.env` son las MACs visibles dentro de la VM, no necesariamente las MACs fisicas de los adaptadores USB del host.
@@ -230,6 +300,100 @@ sudo /usr/local/sbin/suricata-gateway-start
 
 El script hace tres cosas: instala/actualiza symlinks, aplica red (`LAN_IP`, forwarding, NAT, NFQUEUE y `dnsmasq`) y levanta `docker-compose.gateway.yml`. Los puertos de gestion se publican en `GATEWAY_MANAGEMENT_IP`; si no se define, se calcula desde la IP usada por la ruta default de la VM.
 
+## Persistencia al reiniciar
+
+El stack Docker usa `restart: unless-stopped`, por lo que los contenedores vuelven a subir solos despues de reiniciar la VM. Eso no restaura por si solo la configuracion del gateway L3: IP de LAN, NAT, reglas `FORWARD` hacia NFQUEUE y reinicio de `dnsmasq`.
+
+Para evitar que el gateway quede parcialmente levantado despues de un reboot, la VM actual tiene instalado este servicio:
+
+```text
+/etc/systemd/system/suricata-gateway.service
+```
+
+Contenido esperado:
+
+```ini
+[Unit]
+Description=Suricata lab gateway network setup
+Documentation=file:/opt/suricata-lab/gateway/scripts/apply-gateway.sh
+Wants=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=/usr/local/sbin/suricata-gateway-wait
+ExecStart=/usr/local/sbin/suricata-gateway-apply
+
+[Install]
+WantedBy=multi-user.target
+```
+
+El helper `/usr/local/sbin/suricata-gateway-wait` carga `/etc/suricata-lab/gateway.env` y espera hasta 30 segundos a que existan las interfaces configuradas como `LAN_IF` y `WAN_IF`. Esto evita que `dnsmasq` falle con `unknown interface` cuando systemd arranca servicios antes de que las NIC USB esten listas.
+
+Contenido esperado del helper:
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+source /etc/suricata-lab/gateway.env
+
+for _ in {1..30}; do
+  if [[ -d "/sys/class/net/${LAN_IF}" && -d "/sys/class/net/${WAN_IF}" ]]; then
+    exit 0
+  fi
+  sleep 1
+done
+
+echo "Timed out waiting for LAN_IF=${LAN_IF} WAN_IF=${WAN_IF}" >&2
+exit 1
+```
+
+Activar o reparar el servicio:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable suricata-gateway.service
+sudo systemctl restart suricata-gateway.service
+```
+
+Verificar estado:
+
+```bash
+systemctl is-enabled suricata-gateway.service
+systemctl is-active suricata-gateway.service dnsmasq docker
+ip -br addr show dev enx9c69d36686cc
+cat /proc/sys/net/ipv4/ip_forward
+sudo iptables -S FORWARD
+sudo iptables -t nat -S POSTROUTING
+```
+
+Estado esperado despues de reiniciar la VM actual:
+
+```text
+suricata-gateway.service: enabled, active
+dnsmasq: active
+docker: active
+enx9c69d36686cc: UP 192.168.50.1/24
+net.ipv4.ip_forward: 1
+FORWARD: NFQUEUE queue 0 entre enx9c69d36686cc y enp1s0
+POSTROUTING: MASQUERADE para 192.168.50.0/24 saliendo por enp1s0
+```
+
+Falla tipica antes de instalar este servicio:
+
+```text
+dnsmasq: unknown interface enx9c69d36686cc
+```
+
+Ese error indica que `dnsmasq` intento iniciar antes de que la interfaz LAN estuviera levantada o configurada. La solucion es ejecutar `sudo /usr/local/sbin/suricata-gateway-apply` para recuperar el estado en caliente y dejar habilitado `suricata-gateway.service` para los siguientes reinicios.
+
+En la configuracion auditada, `GATEWAY_MANAGEMENT_IP` no estaba escrito en `gateway.env`; `start-gateway.sh` lo calcula con la IP fuente de la ruta default. Si quieres fijarlo explicitamente:
+
+```env
+GATEWAY_MANAGEMENT_IP="192.168.122.68"
+```
+
 `docker-compose.gateway.yml` incluye PostgreSQL interno para el backend. Si el backend reinicia con errores hacia `127.0.0.1:5432`, revisa que la version local tenga el servicio `postgres` y que `BACKEND_DATABASE_URL` apunte a `postgres:5432`.
 
 El compose gateway usa el volumen Docker `suricata-rules` para `/var/lib/suricata/rules`, de forma que Suricata tenga un ruleset writable y el backend pueda aplicar politicas con `suricata-update`. Si el volumen esta vacio, el entrypoint crea una regla bootstrap ICMP para evitar arrancar sin reglas; despues la UI/backend puede reemplazar el ruleset.
@@ -247,6 +411,13 @@ Despues de cambiar interfaces, LAN, DHCP, DNS o `NFQUEUE_NUM`, vuelve a renderiz
 ```bash
 cd ~/proyecto-suricata
 sudo /usr/local/sbin/suricata-gateway-start
+```
+
+Si solo cambiaste red gateway y no necesitas reconstruir contenedores, puedes aplicar y refrescar el servicio persistente:
+
+```bash
+sudo /usr/local/sbin/suricata-gateway-apply
+sudo systemctl restart suricata-gateway.service
 ```
 
 Para reiniciar solo Docker Compose, sin tocar reglas de red:
@@ -328,6 +499,21 @@ docker compose -f docker-compose.gateway.yml ps
 docker compose -f docker-compose.gateway.yml logs -f suricata
 ```
 
+Verificacion especifica del estado replicado:
+
+```bash
+systemctl is-enabled suricata-gateway.service
+systemctl is-active suricata-gateway.service dnsmasq docker
+cat /proc/sys/net/ipv4/ip_forward
+cat /proc/sys/net/ipv6/conf/all/disable_ipv6
+iptables -S FORWARD
+iptables -t nat -S POSTROUTING
+systemctl is-active dnsmasq
+docker inspect suricata --format '{{range .Config.Env}}{{println .}}{{end}}' | grep SURICATA
+docker exec postgres psql -U suricata -d suricata -c "select name,mode,is_active from suricata_profiles order by name;"
+docker exec postgres psql -U suricata -d suricata -c "select list_type,entry_type,value,direction,action,enabled from suricata_list_entries order by created_at;"
+```
+
 Desde un cliente conectado al AP:
 
 ```bash
@@ -368,3 +554,27 @@ sudo /usr/local/sbin/suricata-gateway-unmount
 ```
 
 `unmount.sh` elimina symlinks, archivos renderizados y reglas del gateway. No borra archivos versionados del repositorio.
+
+## Automatizacion actual y pendiente
+
+Automatizacion ya disponible:
+
+- Resolucion de interfaces por MAC (`resolve-interfaces.sh`).
+- Render de `dnsmasq` desde `/etc/suricata-lab/gateway.env`.
+- Instalacion de symlinks en `/usr/local/sbin`.
+- Aplicacion de IP LAN, forwarding, NAT, NFQUEUE y bloqueos QUIC/DoT.
+- Levantamiento del stack gateway con `docker-compose.gateway.yml`.
+- Reaplicacion de red gateway al arrancar mediante `suricata-gateway.service`.
+- Espera de interfaces LAN/WAN antes de aplicar reglas mediante `suricata-gateway-wait`.
+
+Automatizaciones recomendadas para hacerlo mas reproducible:
+
+- Crear un script unico `bootstrap-gateway.sh` que instale paquetes (`docker.io`, compose, `dnsmasq`, `iptables`, `iproute2`, `ethtool`), copie `gateway.env.example` y ejecute `install-symlinks.sh`.
+- Versionar una plantilla del servicio systemd para no depender de crearlo manualmente en la VM.
+- Persistir `BLOCK_QUIC`, `BLOCK_DOT` y `GATEWAY_MANAGEMENT_IP` en `/etc/suricata-lab/gateway.env` para que no dependan de defaults ni de reglas runtime manuales.
+- Generar un reporte automatico `suricata-gateway-doctor` que valide interfaces, ruta default, `ip_forward`, `dnsmasq`, reglas `NFQUEUE`, puertos del panel y estado Docker.
+- Automatizar la creacion de perfiles/reglas iniciales por API o seed para no depender de configurar listas negras manualmente desde la UI.
+- Usar reservas DHCP o AP en modo bridge para evitar doble NAT y ver clientes reales en vez de ver todo como la IP WAN del router/AP.
+- Añadir una tarea que detecte jobs `running` antiguos en `suricata_apply_jobs` y los marque como fallidos o permita reintento seguro.
+
+La automatizacion mas valiosa pendiente es un comando `doctor`, porque el servicio systemd ya evita que un reinicio deje el gateway sin NAT/NFQUEUE, pero aun falta una verificacion resumida de salud.
