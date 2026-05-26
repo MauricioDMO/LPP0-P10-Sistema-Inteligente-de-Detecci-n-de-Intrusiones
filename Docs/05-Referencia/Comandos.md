@@ -164,6 +164,33 @@ docker exec suricata wc -l /var/lib/suricata/rules/suricata.rules
 docker logs suricata --tail=40
 ```
 
+## Gateway VM
+
+Aplicar red gateway en caliente:
+
+```bash
+sudo /usr/local/sbin/suricata-gateway-apply
+```
+
+Habilitar persistencia al reiniciar:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable suricata-gateway.service
+sudo systemctl restart suricata-gateway.service
+```
+
+Verificar estado gateway despues de un reboot:
+
+```bash
+systemctl is-enabled suricata-gateway.service
+systemctl is-active suricata-gateway.service dnsmasq docker
+ip -br addr show dev enx9c69d36686cc
+cat /proc/sys/net/ipv4/ip_forward
+sudo iptables -S FORWARD
+sudo iptables -t nat -S POSTROUTING
+```
+
 ## Redis Realtime
 
 ```bash
