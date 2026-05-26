@@ -185,20 +185,29 @@ WAN_IF="enp2s0"
 
 Si `LAN_IF`/`WAN_IF` estan vacios, se resuelven por MAC. Si tienen valor, se usan como override manual.
 
-En la VM de laboratorio actual, las USB NIC quedaron asi:
+En la VM de laboratorio actual, las interfaces quedaron asi:
 
 ```text
 LAN/router principal: enx9c69d36686cc  MAC 9c:69:d3:66:86:cc
-WAN/ISP:              enx00e04c6818a3  MAC 00:e0:4c:68:18:a3
-Gestion libvirt NAT:  enp1s0           IP 192.168.122.68
+USB WAN/ISP:          enx00e04c6818a3  MAC 00:e0:4c:68:18:a3
+Gestion/libvirt NAT:  enp1s0           IP 192.168.122.68, default route actual
 ```
 
-Si la rama instalada no tiene resolucion por MAC, fuerza los nombres reales en `/etc/suricata-lab/gateway.env`:
+Para una prueba con salida a Internet por la red NAT de libvirt, usa `enp1s0` como WAN real:
+
+```env
+LAN_IF="enx9c69d36686cc"
+WAN_IF="enp1s0"
+```
+
+Para una prueba con ISP/router conectado al USB externo, primero verifica que `enx00e04c6818a3` tenga IP y default route, y luego usa:
 
 ```env
 LAN_IF="enx9c69d36686cc"
 WAN_IF="enx00e04c6818a3"
 ```
+
+La interfaz configurada como `WAN_IF` debe coincidir con la ruta real de salida (`ip route`). Si no coincide, NAT/NFQUEUE quedan aplicados sobre una interfaz por donde no pasa trafico.
 
 ## KVM con bridge
 
@@ -222,6 +231,8 @@ sudo /usr/local/sbin/suricata-gateway-start
 El script hace tres cosas: instala/actualiza symlinks, aplica red (`LAN_IP`, forwarding, NAT, NFQUEUE y `dnsmasq`) y levanta `docker-compose.gateway.yml` con `SURICATA_NFQUEUE_NUM`, `NEXT_PUBLIC_API_URL` y `NEXT_PUBLIC_WS_URL` calculados desde `LAN_IP`.
 
 `docker-compose.gateway.yml` incluye PostgreSQL interno para el backend. Si el backend reinicia con errores hacia `127.0.0.1:5432`, revisa que la version local tenga el servicio `postgres` y que `BACKEND_DATABASE_URL` apunte a `postgres:5432`.
+
+El compose gateway usa el volumen Docker `suricata-rules` para `/var/lib/suricata/rules`, de forma que Suricata tenga un ruleset writable y el backend pueda aplicar politicas con `suricata-update`. Si el volumen esta vacio, el entrypoint crea una regla bootstrap ICMP para evitar arrancar sin reglas; despues la UI/backend puede reemplazar el ruleset.
 
 ## Reinicio y cambios
 

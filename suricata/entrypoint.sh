@@ -6,7 +6,11 @@ NFQUEUE_NUM="${SURICATA_NFQUEUE_NUM:-0}"
 
 prepare_rules() {
   mkdir -p /var/lib/suricata/rules
-  touch /var/lib/suricata/rules/suricata.rules
+  if [[ ! -s /var/lib/suricata/rules/suricata.rules ]]; then
+    cat > /var/lib/suricata/rules/suricata.rules <<'EOF'
+alert icmp any any -> any any (msg:"[SURICATA-LAB] ICMP traffic observed"; sid:9000001; rev:1; classtype:misc-activity;)
+EOF
+  fi
 }
 
 queue_traffic() {
@@ -64,6 +68,7 @@ if [[ "$MODE" == "ips" ]]; then
 fi
 
 if [[ "$MODE" == "gateway-ips" ]]; then
+  prepare_rules
   exec suricata \
     -c /etc/suricata/suricata.yaml \
     -q "$NFQUEUE_NUM" \

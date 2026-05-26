@@ -43,7 +43,7 @@ services:
       - ./suricata/config/classification.config:/etc/suricata/classification.config:ro
       - ./suricata/config/reference.config:/etc/suricata/reference.config:ro
       - ./suricata/config/threshold.config:/etc/suricata/threshold.config:ro
-      - ./suricata/config/rules:/var/lib/suricata/rules:ro
+      - suricata-rules:/var/lib/suricata/rules
       - suricata-logs:/var/log/suricata
     restart: unless-stopped
 
@@ -177,5 +177,6 @@ volumes:
   eslogs:
   filebeat-data:
   suricata-logs:
+  suricata-rules:
   postgres-data:
   geoip-data:
