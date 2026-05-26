@@ -1,4 +1,5 @@
 import asyncio
+import html
 import logging
 import os
 import re
@@ -21,12 +22,22 @@ _buffered_events: list[dict] = []
 _buffer_task: asyncio.Task | None = None
 
 
+def _eve(event: dict) -> dict:
+    return event.get("suricata", {}).get("eve", event)
+
+
 def _alert(event: dict) -> dict:
-    return event.get("alert") or event.get("suricata", {}).get("eve", {}).get("alert") or {}
+    return _eve(event).get("alert") or event.get("alert") or {}
 
 
 def _event_type(event: dict) -> str:
-    return event.get("event_type") or event.get("suricata", {}).get("eve", {}).get("event_type") or ""
+    return _eve(event).get("event_type") or event.get("event_type") or ""
+
+
+def _ip(event: dict, key: str) -> str:
+    eve = _eve(event)
+    nested_key = "source" if key == "src_ip" else "destination"
+    return eve.get(key) or eve.get(nested_key, {}).get("ip") or event.get(key) or event.get(nested_key, {}).get("ip") or "?"
 
 
 def _event_rule_id(event: dict) -> tuple[int, int] | None:
@@ -77,6 +88,7 @@ async def _should_notify(event: dict) -> tuple[bool, SuricataNotificationSetting
                 SuricataRuleOverride.profile_id == profile.id,
                 SuricataRuleOverride.gid == gid,
                 SuricataRuleOverride.sid == sid,
+                SuricataRuleOverride.enabled.is_(True),
                 SuricataRuleOverride.notify_enabled.is_(True),
             )
         )
@@ -86,7 +98,9 @@ async def _should_notify(event: dict) -> tuple[bool, SuricataNotificationSetting
         rules_result = await session.execute(
             select(SuricataCustomRule).where(
                 SuricataCustomRule.profile_id == profile.id,
+                SuricataCustomRule.enabled.is_(True),
                 SuricataCustomRule.notify_enabled.is_(True),
+                SuricataCustomRule.validation_status == "valid",
             )
         )
         for rule in rules_result.scalars().all():
@@ -98,8 +112,16 @@ async def _should_notify(event: dict) -> tuple[bool, SuricataNotificationSetting
 
 def _get_dedup_key(event: dict) -> str:
     sig = _alert(event).get("signature") or ""
-    src = event.get("src_ip") or event.get("source", {}).get("ip") or ""
+    src = _ip(event, "src_ip")
     return f"{sig}:{src}"
+
+
+def _html(value: object) -> str:
+    return html.escape(str(value), quote=False)
+
+
+def _code(value: object) -> str:
+    return f"<code>{_html(value)}</code>"
 
 
 async def send_telegram(message: str, chat_id: str):
@@ -112,7 +134,7 @@ async def send_telegram(message: str, chat_id: str):
         payload = {
             "chat_id": chat_id,
             "text": message,
-            "parse_mode": "Markdown",
+            "parse_mode": "HTML",
             "disable_web_page_preview": True,
         }
         async with aiohttp.ClientSession() as session:
@@ -149,18 +171,19 @@ def _format_event_time(event: dict, timezone_value: str) -> str:
 
 def _format_message(event: dict, timezone_value: str = "UTC") -> str:
     sig = _alert(event).get("signature") or "Alerta"
-    src = event.get("src_ip") or event.get("source", {}).get("ip") or "?"
-    dst = event.get("dest_ip") or event.get("destination", {}).get("ip") or "?"
+    src = _ip(event, "src_ip")
+    dst = _ip(event, "dest_ip")
     domain = ""
-    dns = event.get("suricata", {}).get("eve", {}).get("dns", {})
+    eve = _eve(event)
+    dns = eve.get("dns", {})
     if dns:
         q = dns.get("queries") or []
         if q:
             domain = q[0].get("rrname", "")
-    tls = event.get("suricata", {}).get("eve", {}).get("tls", {})
+    tls = eve.get("tls", {})
     if tls and tls.get("sni"):
         domain = tls["sni"]
-    http = event.get("suricata", {}).get("eve", {}).get("http", {})
+    http = eve.get("http", {})
     if http and http.get("hostname"):
         domain = http["hostname"]
 
@@ -176,14 +199,14 @@ def _format_message(event: dict, timezone_value: str = "UTC") -> str:
     threat = event.get("_threat")
     threat_line = ""
     if threat and threat.get("is_malicious"):
-        threat_line = f"\n☠️ *Threat Intel:* Confianza {threat.get('confidence', 0)}% | {threat.get('total_reports', 0)} reportes"
+        threat_line = f"\n☠️ <b>Threat Intel:</b> Confianza {_html(threat.get('confidence', 0))}% | {_html(threat.get('total_reports', 0))} reportes"
 
     lines = [
-        f"{icon} *{sig}*",
-        f"🕐 {ts}" if ts else "",
-        f"📌 Dominio: `{domain}`" if domain else "",
-        f"🔹 Origen: `{src}`",
-        f"🔸 Destino: `{dst}`",
+        f"{icon} <b>{_html(sig)}</b>",
+        f"🕐 {_html(ts)}" if ts else "",
+        f"📌 Dominio: {_code(domain)}" if domain else "",
+        f"🔹 Origen: {_code(src)}",
+        f"🔸 Destino: {_code(dst)}",
     ]
     if threat_line:
         lines.append(threat_line)
@@ -192,13 +215,13 @@ def _format_message(event: dict, timezone_value: str = "UTC") -> str:
 
 
 def _format_buffer_message(events: list[dict], timezone_value: str) -> str:
-    lines = [f"*Resumen Suricata:* {len(events)} alertas"]
+    lines = [f"<b>Resumen Suricata:</b> {len(events)} alertas"]
     for event in events[:20]:
         sig = _alert(event).get("signature") or "Alerta"
-        src = event.get("src_ip") or event.get("source", {}).get("ip") or "?"
-        dst = event.get("dest_ip") or event.get("destination", {}).get("ip") or "?"
+        src = _ip(event, "src_ip")
+        dst = _ip(event, "dest_ip")
         ts = _format_event_time(event, timezone_value)
-        lines.append(f"- `{ts}` {sig} | `{src}` -> `{dst}`")
+        lines.append(f"- {_code(ts)} {_html(sig)} | {_code(src)} -> {_code(dst)}")
     if len(events) > 20:
         lines.append(f"... y {len(events) - 20} alertas mas")
     return "\n".join(lines)
