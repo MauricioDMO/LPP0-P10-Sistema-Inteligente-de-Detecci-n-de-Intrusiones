@@ -11,6 +11,12 @@ fi
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/resolve-interfaces.sh"
+
+resolve_gateway_interfaces
+
 required_vars=(WAN_IF LAN_IF LAN_IP LAN_CIDR LAN_NET NFQUEUE_NUM)
 
 for var in "${required_vars[@]}"; do

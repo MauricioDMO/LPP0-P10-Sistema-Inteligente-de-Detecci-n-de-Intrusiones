@@ -20,13 +20,15 @@ PROJECT_LINK_DIR="${PROJECT_LINK_DIR:-/opt/suricata-lab}"
 
 sudo ln -sfn "$PROJECT_DIR" "$PROJECT_LINK_DIR"
 
-if [[ -n "${LAN_IF:-}" && "${LAN_IF:-}" != "__LAN_IF__" ]]; then
-  "$PROJECT_DIR/gateway/scripts/render-config.sh"
-
-  sudo ln -sf "${RENDER_DIR:-/etc/suricata-lab/rendered}/dnsmasq-lab.conf" \
-    /etc/dnsmasq.d/suricata-lab.conf
+if [[ -n "${LAN_IF:-}" && "${LAN_IF:-}" != "__LAN_IF__" ]] || [[ -n "${INTERNAL_MAC:-}" && "${INTERNAL_MAC:-}" != "__INTERNAL_MAC__" ]]; then
+  if "$PROJECT_DIR/gateway/scripts/render-config.sh"; then
+    sudo ln -sf "${RENDER_DIR:-/etc/suricata-lab/rendered}/dnsmasq-lab.conf" \
+      /etc/dnsmasq.d/suricata-lab.conf
+  else
+    echo "Skipping dnsmasq symlink until LAN_IF or INTERNAL_MAC matches an interface."
+  fi
 else
-  echo "Skipping dnsmasq render until LAN_IF is configured in $ENV_FILE"
+  echo "Skipping dnsmasq render until LAN_IF or INTERNAL_MAC is configured in $ENV_FILE"
 fi
 
 sudo ln -sf "$PROJECT_DIR/gateway/sysctl-suricata-gateway.conf" \

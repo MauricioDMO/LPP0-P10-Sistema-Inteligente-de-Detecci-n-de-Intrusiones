@@ -14,6 +14,12 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/resolve-interfaces.sh"
+
+resolve_lan_interface
+
 required_vars=(LAN_IF LAN_IP DHCP_START DHCP_END DHCP_LEASE DNS_1 DNS_2 RENDER_DIR)
 
 for var in "${required_vars[@]}"; do
