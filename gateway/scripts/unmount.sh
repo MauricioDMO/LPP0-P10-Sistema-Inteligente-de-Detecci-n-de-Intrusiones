@@ -15,6 +15,8 @@ if [[ -f "$ENV_FILE" ]]; then
   # shellcheck disable=SC1090
   source "$ENV_FILE"
   export GATEWAY_LAN_IP="${LAN_IP:-192.168.50.1}"
+  export GATEWAY_MANAGEMENT_IP="${GATEWAY_MANAGEMENT_IP:-$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9.]*\).*/\1/p' | head -n1)}"
+  export GATEWAY_MANAGEMENT_IP="${GATEWAY_MANAGEMENT_IP:-0.0.0.0}"
   export SURICATA_NFQUEUE_NUM="${NFQUEUE_NUM:-0}"
 
   docker compose \

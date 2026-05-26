@@ -228,7 +228,7 @@ Levantar todo:
 sudo /usr/local/sbin/suricata-gateway-start
 ```
 
-El script hace tres cosas: instala/actualiza symlinks, aplica red (`LAN_IP`, forwarding, NAT, NFQUEUE y `dnsmasq`) y levanta `docker-compose.gateway.yml` con `SURICATA_NFQUEUE_NUM`, `NEXT_PUBLIC_API_URL` y `NEXT_PUBLIC_WS_URL` calculados desde `LAN_IP`.
+El script hace tres cosas: instala/actualiza symlinks, aplica red (`LAN_IP`, forwarding, NAT, NFQUEUE y `dnsmasq`) y levanta `docker-compose.gateway.yml`. Los puertos de gestion se publican en `GATEWAY_MANAGEMENT_IP`; si no se define, se calcula desde la IP usada por la ruta default de la VM.
 
 `docker-compose.gateway.yml` incluye PostgreSQL interno para el backend. Si el backend reinicia con errores hacia `127.0.0.1:5432`, revisa que la version local tenga el servicio `postgres` y que `BACKEND_DATABASE_URL` apunte a `postgres:5432`.
 
@@ -255,9 +255,11 @@ Para reiniciar solo Docker Compose, sin tocar reglas de red:
 cd ~/proyecto-suricata
 source /etc/suricata-lab/gateway.env
 export GATEWAY_LAN_IP="${LAN_IP:-192.168.50.1}"
+export GATEWAY_MANAGEMENT_IP="${GATEWAY_MANAGEMENT_IP:-$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9.]*\).*/\1/p' | head -n1)}"
+export GATEWAY_MANAGEMENT_IP="${GATEWAY_MANAGEMENT_IP:-0.0.0.0}"
 export SURICATA_NFQUEUE_NUM="${NFQUEUE_NUM:-0}"
-export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://${GATEWAY_LAN_IP}:8000}"
-export NEXT_PUBLIC_WS_URL="${NEXT_PUBLIC_WS_URL:-ws://${GATEWAY_LAN_IP}:8000/ws}"
+export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://${GATEWAY_MANAGEMENT_IP}:8000}"
+export NEXT_PUBLIC_WS_URL="${NEXT_PUBLIC_WS_URL:-ws://${GATEWAY_MANAGEMENT_IP}:8000/ws}"
 docker compose -f docker-compose.gateway.yml restart
 ```
 
@@ -287,9 +289,11 @@ Si solo quieres reconstruir contenedores despues de actualizar, sin reaplicar re
 cd ~/proyecto-suricata
 source /etc/suricata-lab/gateway.env
 export GATEWAY_LAN_IP="${LAN_IP:-192.168.50.1}"
+export GATEWAY_MANAGEMENT_IP="${GATEWAY_MANAGEMENT_IP:-$(ip -4 route get 1.1.1.1 | sed -n 's/.* src \([0-9.]*\).*/\1/p' | head -n1)}"
+export GATEWAY_MANAGEMENT_IP="${GATEWAY_MANAGEMENT_IP:-0.0.0.0}"
 export SURICATA_NFQUEUE_NUM="${NFQUEUE_NUM:-0}"
-export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://${GATEWAY_LAN_IP}:8000}"
-export NEXT_PUBLIC_WS_URL="${NEXT_PUBLIC_WS_URL:-ws://${GATEWAY_LAN_IP}:8000/ws}"
+export NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL:-http://${GATEWAY_MANAGEMENT_IP}:8000}"
+export NEXT_PUBLIC_WS_URL="${NEXT_PUBLIC_WS_URL:-ws://${GATEWAY_MANAGEMENT_IP}:8000/ws}"
 docker compose -f docker-compose.gateway.yml up -d --build
 ```
 
@@ -331,12 +335,14 @@ ping 192.168.50.1
 curl http://neverssl.com
 ```
 
-Servicios disponibles en la LAN del gateway:
+Servicios disponibles por la IP de gestion de la VM:
 
 ```text
-Frontend: http://192.168.50.1:3000
-Backend:  http://192.168.50.1:8000
+Frontend: http://192.168.122.68:3000
+Backend:  http://192.168.122.68:8000
 ```
+
+La LAN del gateway sigue siendo `192.168.50.1/24` para clientes conectados al AP/router, pero el panel se publica por la IP de gestion para administrarlo sin conectarse a la red interna.
 
 ## Configuracion de VM
 
