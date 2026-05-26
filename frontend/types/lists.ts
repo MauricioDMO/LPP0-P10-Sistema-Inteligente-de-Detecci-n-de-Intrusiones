@@ -13,6 +13,7 @@ export type ListEntry = {
   action: ListAction;
   reason: string | null;
   enabled: boolean;
+  notify_enabled: boolean;
   generated_rule_ids: string[];
   created_by_id: string | null;
   updated_by_id: string | null;
@@ -28,6 +29,7 @@ export type ListEntryPayload = {
   action?: ListAction | null;
   reason?: string | null;
   enabled: boolean;
+  notify_enabled?: boolean;
 };
 
 export type ListEntryUpdatePayload = Partial<Omit<ListEntryPayload, "profile_id">>;

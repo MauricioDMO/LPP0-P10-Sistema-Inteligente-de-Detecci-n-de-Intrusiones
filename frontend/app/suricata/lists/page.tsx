@@ -19,13 +19,14 @@ export default function ListsPage() {
   const [entries, setEntries] = useState<ListEntry[]>([]);
   const [generatedRules, setGeneratedRules] = useState<GeneratedRule[]>([]);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<{ entry_type: ListEntryType; value: string; direction: ListDirection; action: ListAction; reason: string; enabled: boolean }>({
+  const [form, setForm] = useState<{ entry_type: ListEntryType; value: string; direction: ListDirection; action: ListAction; reason: string; enabled: boolean; notify_enabled: boolean }>({
     entry_type: "domain",
     value: "",
     direction: "destination",
     action: "drop",
     reason: "",
     enabled: true,
+    notify_enabled: false,
   });
 
   async function loadProfile(profileId: string, listType = activeList) {
@@ -92,6 +93,7 @@ export default function ListsPage() {
         action: activeList === "allow" ? "pass" : form.action,
         reason: form.reason || null,
         enabled: form.enabled,
+        notify_enabled: activeList === "block" ? form.notify_enabled : false,
       });
       setForm((current) => ({ ...current, value: "", reason: "" }));
       await loadProfile(selectedProfileId);
@@ -111,6 +113,17 @@ export default function ListsPage() {
       window.dispatchEvent(new Event("suricata-config-dirty"));
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "No se pudo actualizar la entrada");
+    }
+  }
+
+  async function handleToggleNotification(entry: ListEntry) {
+    try {
+      await updateListEntry(entry.list_type, entry.id, { notify_enabled: !entry.notify_enabled });
+      await loadProfile(selectedProfileId);
+      window.dispatchEvent(new Event("suricata-config-dirty"));
+      toast.success("Preferencia de Telegram guardada; aplica cambios para recargar Suricata");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo actualizar la notificación");
     }
   }
 
@@ -188,6 +201,12 @@ export default function ListsPage() {
               <input checked={form.enabled} onChange={() => setForm((current) => ({ ...current, enabled: !current.enabled }))} type="checkbox" />
               Habilitada
             </label>
+            {activeList === "block" ? (
+              <label className="inline-flex items-center gap-2 text-sm font-bold text-white">
+                <input checked={form.notify_enabled} onChange={() => setForm((current) => ({ ...current, notify_enabled: !current.notify_enabled }))} type="checkbox" />
+                Notificar por Telegram
+              </label>
+            ) : null}
             <ActionButton disabled={!selectedProfileId || saving} type="submit">Agregar entrada</ActionButton>
           </div>
         </FormPanel>
@@ -205,13 +224,22 @@ export default function ListsPage() {
                 <div className="flex flex-wrap gap-2">
                   <StatusPill tone={entry.enabled ? "success" : "muted"}>{entry.enabled ? "activa" : "inactiva"}</StatusPill>
                   <StatusPill tone={entry.action === "pass" ? "success" : entry.action === "reject" ? "warning" : "danger"}>{entry.action}</StatusPill>
+                  {entry.list_type === "block" ? <StatusPill tone={entry.notify_enabled ? "success" : "muted"}>{entry.notify_enabled ? "Telegram" : "Sin Telegram"}</StatusPill> : null}
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-soc-outline/50 pt-4">
-                <label className="inline-flex items-center gap-2 text-sm font-bold text-white">
-                  <input checked={entry.enabled} onChange={() => void handleToggle(entry)} type="checkbox" />
-                  Incluir
-                </label>
+                <div className="flex flex-wrap gap-4">
+                  <label className="inline-flex items-center gap-2 text-sm font-bold text-white">
+                    <input checked={entry.enabled} onChange={() => void handleToggle(entry)} type="checkbox" />
+                    Incluir
+                  </label>
+                  {entry.list_type === "block" ? (
+                    <label className="inline-flex items-center gap-2 text-sm font-bold text-white">
+                      <input checked={entry.notify_enabled} onChange={() => void handleToggleNotification(entry)} type="checkbox" />
+                      Notificar
+                    </label>
+                  ) : null}
+                </div>
                 <ActionButton onClick={() => void handleDelete(entry)} tone="danger"><IconTrash size={15} /> Eliminar</ActionButton>
               </div>
             </article>
