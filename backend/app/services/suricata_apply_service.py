@@ -205,6 +205,39 @@ def suricata_update_command(container: str, offline: bool) -> list[str]:
     return command
 
 
+def is_missing_offline_cache_error(output: str) -> bool:
+    normalized = output.lower()
+    return "can't proceed offline" in normalized and "has not yet been downloaded" in normalized
+
+
+def is_transient_source_fetch_error(output: str) -> bool:
+    normalized = output.lower()
+    return "read operation timed out" in normalized or "failed to copy file" in normalized
+
+
+def run_source_updates(container: str, sources: list[SuricataSource], progress: Callable[[str, str], None] | None = None) -> list[str]:
+    outputs: list[str] = []
+    for index, source in enumerate(sources, start=1):
+        source_action = "enable-source" if source.enabled else "disable-source"
+        if progress:
+            progress("updating_sources", f"{source_action} {source.source_name} ({index}/{len(sources)})")
+        outputs.append(run_command(["docker", "exec", container, "suricata-update", source_action, source.source_name]))
+    return outputs
+
+
+def run_suricata_update(container: str, offline: bool, progress: Callable[[str, str], None] | None = None, attempts: int = 2) -> str:
+    for attempt in range(1, attempts + 1):
+        try:
+            return run_command(suricata_update_command(container, offline=offline))
+        except SuricataCommandError as exc:
+            if offline or attempt >= attempts or not is_transient_source_fetch_error(exc.output):
+                raise
+            if progress:
+                progress("suricata_update_retry", f"Descarga de fuente fallo; reintentando suricata-update ({attempt + 1}/{attempts})")
+            time.sleep(3)
+    raise RuntimeError("unreachable")
+
+
 def suricata_log_size(container: str) -> int:
     output = run_command(["docker", "exec", container, "sh", "-c", "wc -c < /var/log/suricata/suricata.log 2>/dev/null || echo 0"])
     try:
@@ -253,18 +286,24 @@ def apply_with_docker(
             outputs.append(run_command(["docker", "cp", str(temp_path / "local-rules" / "custom.rules"), f"{container}:/etc/suricata/local-rules/custom.rules"]))
 
         if mode == "full":
-            for index, source in enumerate(sources, start=1):
-                source_action = "enable-source" if source.enabled else "disable-source"
-                if progress:
-                    progress("updating_sources", f"{source_action} {source.source_name} ({index}/{len(sources)})")
-                outputs.append(run_command(["docker", "exec", container, "suricata-update", source_action, source.source_name]))
+            outputs.extend(run_source_updates(container, sources, progress))
             if progress:
                 progress("suricata_update", "Descargando y compilando reglas con suricata-update")
-            outputs.append(run_command(suricata_update_command(container, offline=False)))
+            outputs.append(run_suricata_update(container, offline=False, progress=progress))
         else:
             if progress:
                 progress("fast_update", "Regenerando ruleset local desde cache de suricata-update")
-            outputs.append(run_command(suricata_update_command(container, offline=True)))
+            try:
+                outputs.append(run_command(suricata_update_command(container, offline=True)))
+            except SuricataCommandError as exc:
+                if not is_missing_offline_cache_error(exc.output):
+                    raise
+                if progress:
+                    progress("suricata_update", "Cache local incompleto; ejecutando actualizacion completa")
+                if exc.output:
+                    outputs.append(exc.output)
+                outputs.extend(run_source_updates(container, sources, progress))
+                outputs.append(run_suricata_update(container, offline=False, progress=progress))
         if progress:
             progress("testing_config", "Validando configuracion con suricata -T")
         outputs.append(run_command(["docker", "exec", container, "suricata", "-T", "-c", "/etc/suricata/suricata.yaml"], timeout=240))
