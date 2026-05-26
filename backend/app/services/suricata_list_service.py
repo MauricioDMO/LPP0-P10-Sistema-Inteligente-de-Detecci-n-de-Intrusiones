@@ -97,6 +97,7 @@ async def sync_profile_list_rules(session: Any, profile_id: uuid.UUID) -> list[t
         select(SuricataListEntry).where(SuricataListEntry.profile_id == profile_id).order_by(SuricataListEntry.created_at, SuricataListEntry.id)
     )
     entries = list(result.scalars().all())
+    entry_by_id = {entry.id: entry for entry in entries}
     stale_rule_ids = [uuid.UUID(rule_id) for entry in entries for rule_id in entry.generated_rule_ids]
     if stale_rule_ids:
         await session.execute(delete(SuricataCustomRule).where(SuricataCustomRule.id.in_(stale_rule_ids)))
@@ -104,6 +105,7 @@ async def sync_profile_list_rules(session: Any, profile_id: uuid.UUID) -> list[t
     generated = preview_generated_rules(entries)
     grouped: dict[uuid.UUID, list[SuricataCustomRule]] = {entry.id: [] for entry in entries}
     for entry_id, rule_text in generated:
+        entry = entry_by_id[entry_id]
         status, error = validate_custom_rule_text(rule_text)
         rule = SuricataCustomRule(
             id=uuid.uuid4(),
