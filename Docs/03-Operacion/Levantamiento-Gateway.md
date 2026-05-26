@@ -37,6 +37,94 @@ El modo normal se sigue levantando con el `.env` del proyecto y no usa las varia
 - `gateway/vm/baseDeb-usb-nic-realtek.xml`: fragmento libvirt para pasar un adaptador USB Realtek RTL8153 a la VM.
 - `gateway/vm/baseDeb-usb-nic-asix.xml`: fragmento libvirt para pasar un adaptador USB ASIX AX88179 a la VM.
 
+## Levantar la VM KVM
+
+Preparar host y servicios libvirt:
+
+```bash
+sudo apt update
+sudo apt install -y qemu-kvm libvirt-daemon-system libvirt-clients virtinst virt-manager virt-xml
+sudo systemctl enable --now libvirtd virtlogd virtlockd
+sudo virsh --connect qemu:///system net-autostart default
+sudo virsh --connect qemu:///system net-start default 2>/dev/null || true
+```
+
+Verificar KVM en el host:
+
+```bash
+ls -l /dev/kvm
+lscpu | grep -i virtualization
+```
+
+Si `/dev/kvm` no existe pero el CPU muestra `VT-x` o `AMD-V`, cargar y persistir modulos:
+
+```bash
+sudo modprobe kvm
+sudo modprobe kvm_intel
+printf "kvm\nkvm_intel\n" | sudo tee /etc/modules-load.d/kvm.conf
+```
+
+Crear disco en el storage de libvirt y copiar ISO:
+
+```bash
+sudo mkdir -p /var/lib/libvirt/images/baseDeb
+sudo qemu-img create -f qcow2 /var/lib/libvirt/images/baseDeb/baseDeb.qcow2 40G
+sudo cp -n /home/mauriciodmo/core/iso/debian-13.4.0-amd64-netinst.iso /var/lib/libvirt/images/
+sudo chown -R libvirt-qemu:libvirt-qemu /var/lib/libvirt/images/baseDeb
+sudo chown libvirt-qemu:libvirt-qemu /var/lib/libvirt/images/debian-13.4.0-amd64-netinst.iso
+```
+
+Crear la VM con KVM y CPU real del host. `host-passthrough` evita errores como `CPU does not support x86-64-v2` al construir imagenes modernas:
+
+```bash
+virt-install \
+  --connect qemu:///system \
+  --virt-type kvm \
+  --name baseDeb \
+  --memory 4096 \
+  --vcpus 2 \
+  --cpu host-passthrough \
+  --disk path="/var/lib/libvirt/images/baseDeb/baseDeb.qcow2",format=qcow2,bus=virtio \
+  --cdrom "/var/lib/libvirt/images/debian-13.4.0-amd64-netinst.iso" \
+  --os-variant debian12 \
+  --network network=default,model=virtio \
+  --graphics spice \
+  --video virtio \
+  --boot uefi \
+  --noautoconsole
+```
+
+Abrir consola grafica para instalar Debian:
+
+```bash
+virt-manager --connect qemu:///system
+```
+
+Despues de instalar Debian, apagar y adjuntar las dos USB NIC:
+
+```bash
+virsh --connect qemu:///system shutdown baseDeb
+virsh --connect qemu:///system attach-device baseDeb gateway/vm/baseDeb-usb-nic-realtek.xml --persistent
+virsh --connect qemu:///system attach-device baseDeb gateway/vm/baseDeb-usb-nic-asix.xml --persistent
+virsh --connect qemu:///system start baseDeb
+```
+
+Si una VM ya fue creada como `type=qemu` o CPU `qemu64`, corregirla asi:
+
+```bash
+virsh --connect qemu:///system shutdown baseDeb
+virt-xml --connect qemu:///system baseDeb --edit --xml ./@type=kvm
+virt-xml --connect qemu:///system baseDeb --edit --cpu host-passthrough
+virsh --connect qemu:///system start baseDeb
+```
+
+Verificar dentro de la VM:
+
+```bash
+lscpu | grep -E "Model name|Hypervisor|Virtualization"
+ip -br link
+```
+
 ## Primer uso en la VM
 
 Instalar dependencias del sistema. En Debian 12 suele existir `docker-compose-plugin`; en Debian 13/Trixie puede llamarse `docker-compose`:
@@ -133,6 +221,8 @@ sudo /usr/local/sbin/suricata-gateway-start
 
 El script hace tres cosas: instala/actualiza symlinks, aplica red (`LAN_IP`, forwarding, NAT, NFQUEUE y `dnsmasq`) y levanta `docker-compose.gateway.yml` con `SURICATA_NFQUEUE_NUM`, `NEXT_PUBLIC_API_URL` y `NEXT_PUBLIC_WS_URL` calculados desde `LAN_IP`.
 
+`docker-compose.gateway.yml` incluye PostgreSQL interno para el backend. Si el backend reinicia con errores hacia `127.0.0.1:5432`, revisa que la version local tenga el servicio `postgres` y que `BACKEND_DATABASE_URL` apunte a `postgres:5432`.
+
 ## Reinicio y cambios
 
 Las variables persistentes del gateway van en:
@@ -200,14 +290,14 @@ Si `virt-install` mostro `KVM acceleration not available`, la VM corre por emula
 Fatal glibc error: CPU does not support x86-64-v2
 ```
 
-Solucion recomendada: activar Intel VT-x/AMD-V en BIOS/UEFI, verificar que exista `/dev/kvm` en el host, apagar/encender la VM y reconstruir. Verificacion en el host:
+Solucion recomendada: activar Intel VT-x/AMD-V en BIOS/UEFI, verificar que exista `/dev/kvm` en el host, y asegurar que la VM use `type=kvm` con CPU `host-passthrough`. Verificacion en el host:
 
 ```bash
 ls -l /dev/kvm
-virsh --connect qemu:///system dominfo baseDeb
+virsh --connect qemu:///system dumpxml baseDeb | grep -E "<domain|<cpu|host-passthrough"
 ```
 
-Mientras no haya KVM, el gateway puede tener las interfaces configuradas, pero el stack Docker puede fallar al construir imagenes que requieren CPU `x86-64-v2`.
+Mientras no haya KVM o la VM siga con CPU `qemu64`, el gateway puede tener las interfaces configuradas, pero el stack Docker puede fallar al construir imagenes que requieren CPU `x86-64-v2`.
 
 ## Verificacion
 
